@@ -1,5 +1,6 @@
-package org.example.trainingapp.dao;
+package org.example.trainingapp.dao.impl;
 
+import org.example.trainingapp.dao.TrainerDao;
 import org.example.trainingapp.entity.Trainer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
