@@ -16,7 +16,7 @@ This is a modular Java 21 application built using **pure Spring Core (without Sp
 
 ---
 
-## 🛠 Technologies Used
+## Technologies Used
 
 | Component       | Technology                   |
 |-----------------|------------------------------|
@@ -115,10 +115,10 @@ SEVERE: Critical error during data loading
 
 - Credentials (username/password) are generated dynamically and stored in-memory.
 - No external DB is used — all data is handled with Spring-managed maps.
-- Usernames are generated with duplicates prevented
+- Usernames are generated with duplicates prevented.
 - Passwords and other sensitive data are **never** logged; only usernames, IDs, or non-confidential fields appear in logs.
 - Although Spring’s `BeanPostProcessor` was considered, data loading is performed with `@PostConstruct`. This guarantees no risk of calling methods on partially initialized beans.
-- 100% test coverage of services and utils
+- 100% test coverage of services and utils.
 
 ### Design Patterns Used
 The project incorporates several established design patterns:
@@ -142,5 +142,7 @@ Spring externalises all config values through a classic **Property Placeholder**
 
 ## Author
 
-Aleksei Pereverzev
+Aleksei Pereverzev  
 Developed as part of a Java Spring Core architecture exercise with modular design.
+
+
