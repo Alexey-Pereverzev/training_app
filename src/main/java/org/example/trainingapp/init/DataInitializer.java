@@ -53,7 +53,7 @@ public class DataInitializer {
         try {
             loadTrainees();
             loadTrainers();
-            loadTrainings(); // 👈 добавь сюда
+            loadTrainings();
         } catch (Exception e) {
             log.log(Level.SEVERE, "Critical error during data loading", e);
         }
