@@ -1,6 +1,10 @@
 package org.example.trainingapp.init;
 
-import org.example.trainingapp.entity.*;
+import org.example.trainingapp.entity.TrainingType;
+import org.example.trainingapp.entity.Trainee;
+import org.example.trainingapp.entity.Trainer;
+import org.example.trainingapp.entity.Training;
+import org.example.trainingapp.entity.User;
 import org.example.trainingapp.service.TraineeService;
 import org.example.trainingapp.service.TrainerService;
 import org.example.trainingapp.service.TrainingService;

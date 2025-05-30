@@ -4,76 +4,83 @@ import org.example.trainingapp.dao.TraineeDao;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.User;
 import org.example.trainingapp.service.impl.TraineeServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.assertj.core.api.Assertions.assertThat;
 
 
+@ExtendWith(MockitoExtension.class)
 class TraineeServiceImplTest {
 
+    @Mock
     private TraineeDao traineeDao;
-    private TraineeServiceImpl traineeService;
 
-    @BeforeEach
-    void setUp() {
-        traineeDao = mock(TraineeDao.class);
-        traineeService = new TraineeServiceImpl();
-        traineeService.setTraineeDao(traineeDao);
-    }
+    @InjectMocks
+    private TraineeServiceImpl traineeService;
 
 
     @Test
-    void testCreateTrainee_shouldGenerateUsernameAndPassword() {
+    void whenCreatingTrainee_shouldGenerateUsernameAndPassword() {
+        // given
         Trainee t = new Trainee(1L, new User("Ivan", "Petrov", null, null,
                 false), LocalDate.of(1990, 1, 1), "Almaty");
-
         when(traineeDao.findAll()).thenReturn(new ArrayList<>());
+        // when
         traineeService.createTrainee(t);
-
+        // then
         ArgumentCaptor<Trainee> captor = ArgumentCaptor.forClass(Trainee.class);
         verify(traineeDao).save(captor.capture());
 
         Trainee saved = captor.getValue();
-        assertEquals("Ivan.Petrov", saved.getUser().getUsername());
-        assertNotNull(saved.getUser().getPassword());
-        assertTrue(saved.getUser().isActive());
+        assertThat(saved.getUser().getUsername()).isEqualTo("Ivan.Petrov");
+        assertThat(saved.getUser().getPassword()).isNotNull();
+        assertThat(saved.getUser().isActive()).isTrue();
     }
 
 
     @Test
-    void testGetTrainee_shouldReturnTrainee() {
+    void whenGettingTrainee_shouldReturnTrainee() {
+        // given
         Trainee t = new Trainee(2L, new User("Anna", "Ivanova", "Anna.Ivanova",
                 "pass", true), LocalDate.of(1995, 2, 2), "Astana");
-
         when(traineeDao.findById(2L)).thenReturn(Optional.of(t));
-
+        // when
         Trainee result = traineeService.getTrainee(2L);
-        assertNotNull(result);
-        assertEquals("Anna.Ivanova", result.getUser().getUsername());
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getUser().getUsername()).isEqualTo("Anna.Ivanova");
     }
 
 
     @Test
-    void testDeleteTrainee_shouldCallDao() {
+    void whenDeletingTrainee_shouldCallDao() {
+        // when
         traineeService.deleteTrainee(99L);
+        // then
         verify(traineeDao, times(1)).deleteById(99L);
     }
 
     @Test
-    void testUpdateTrainee_shouldCallDaoUpdate() {
+    void whenUpdatingTrainee_shouldCallDaoUpdate() {
+        // given
         Trainee trainee = new Trainee(50L, new User("Nina", "Rakhimova",
                 "Nina.Rakhimova", "pw123", true), LocalDate.of(1990, 2, 2),
                 "Astana");
-
+        // when
         traineeService.updateTrainee(trainee);
-
+        // then
         verify(traineeDao).update(trainee);
     }
 }

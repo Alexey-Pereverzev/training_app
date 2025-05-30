@@ -3,6 +3,7 @@ package org.example.trainingapp.util;
 import java.security.SecureRandom;
 import java.util.List;
 
+
 public class CredentialsUtil {
 
     private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

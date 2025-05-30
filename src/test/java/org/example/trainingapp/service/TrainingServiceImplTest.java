@@ -1,67 +1,83 @@
 package org.example.trainingapp.service;
 
 import org.example.trainingapp.dao.TrainingDao;
-import org.example.trainingapp.entity.*;
+import org.example.trainingapp.entity.TrainingType;
+import org.example.trainingapp.entity.Trainee;
+import org.example.trainingapp.entity.Trainer;
+import org.example.trainingapp.entity.Training;
+import org.example.trainingapp.entity.User;
 import org.example.trainingapp.service.impl.TrainingServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
+@ExtendWith(MockitoExtension.class)
 class TrainingServiceImplTest {
 
+    @Mock
     private TrainingDao trainingDao;
+
+    @InjectMocks
     private TrainingServiceImpl trainingService;
 
-    @BeforeEach
-    void setUp() {
-        trainingDao = mock(TrainingDao.class);
-        trainingService = new TrainingServiceImpl();
-        trainingService.setTrainingDao(trainingDao);
-    }
-
 
     @Test
-    void testCreateTraining_shouldCallDaoSave() {
+    void whenCreatingTraining_shouldCallDaoSave() {
+        // given
         Training training = buildMockTraining(1L);
+        // when
         trainingService.createTraining(training);
-        verify(trainingDao, times(1)).save(training);
+        // then
+        verify(trainingDao).save(training);
     }
 
-
     @Test
-    void testGetTraining_shouldReturnTraining() {
+    void whenGettingTraining_shouldReturnTraining() {
+        // given
         Training training = buildMockTraining(2L);
-
         when(trainingDao.findById(2L)).thenReturn(Optional.of(training));
+        // when
         Training result = trainingService.getTraining(2L);
-
-        assertNotNull(result);
-        assertEquals("Power Yoga", result.getTrainingName());
-        assertEquals("Yoga", result.getTrainingType().getName());
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getTrainingName()).isEqualTo("Power Yoga");
+        assertThat(result.getTrainingType().getName()).isEqualTo("Yoga");
     }
 
 
     @Test
-    void testGetTraining_whenNotFound_shouldReturnNull() {
+    void whenGettingTrainingNotFound_shouldReturnNull() {
+        // given
         when(trainingDao.findById(99L)).thenReturn(Optional.empty());
+        // when
         Training result = trainingService.getTraining(99L);
-        assertNull(result);
+        // then
+        assertThat(result).isNull();
     }
 
 
     @Test
-    void testGetAllTrainings_shouldReturnList() {
+    void whenGettingAllTrainings_shouldReturnList() {
+        // given
         Training t1 = buildMockTraining(1L);
         Training t2 = buildMockTraining(2L);
         when(trainingDao.findAll()).thenReturn(Arrays.asList(t1, t2));
-        assertEquals(2, trainingService.getAllTrainings().size());
+        // when
+        List<Training> all = trainingService.getAllTrainings();
+        // then
+        assertThat(all.size()).isEqualTo(2);
     }
 
 

@@ -1,7 +1,11 @@
 package org.example;
 
 import org.example.trainingapp.config.AppConfig;
-import org.example.trainingapp.entity.*;
+import org.example.trainingapp.entity.TrainingType;
+import org.example.trainingapp.entity.Trainee;
+import org.example.trainingapp.entity.Trainer;
+import org.example.trainingapp.entity.Training;
+import org.example.trainingapp.entity.User;
 import org.example.trainingapp.facade.TrainingSystemFacade;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
