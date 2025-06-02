@@ -1,0 +1,11 @@
+trainee:
+  data:
+    path: classpath:data/trainees.csv
+
+trainer:
+  data:
+    path: classpath:data/trainers.csv
+
+training:
+  data:
+    path: classpath:data/trainings.csv
