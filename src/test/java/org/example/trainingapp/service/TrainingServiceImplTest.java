@@ -5,7 +5,6 @@ import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
-import org.example.trainingapp.entity.User;
 import org.example.trainingapp.service.impl.TrainingServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,7 +55,6 @@ class TrainingServiceImplTest {
         assertThat(result.getTrainingType().getName()).isEqualTo("Yoga");
     }
 
-
     @Test
     void whenGettingTrainingNotFound_shouldReturnNull() {
         // given
@@ -66,7 +64,6 @@ class TrainingServiceImplTest {
         // then
         assertThat(result).isNull();
     }
-
 
     @Test
     void whenGettingAllTrainings_shouldReturnList() {
@@ -80,13 +77,14 @@ class TrainingServiceImplTest {
         assertThat(all.size()).isEqualTo(2);
     }
 
-
     private Training buildMockTraining(Long id) {
-        Trainee trainee = new Trainee(100L, new User("Anna", "Ivanova", "Anna.Ivanova",
-                "pass", true), LocalDate.of(1995, 1, 1), "Almaty");
-        Trainer trainer = new Trainer(200L, new User("Elena", "Sokolova", "Elena.Sokolova",
-                "pass", true), "Yoga");
-        return new Training(id, "Power Yoga", new TrainingType("Yoga"), LocalDate.of(2024, 5,
-                10), 60, trainee, trainer);
+        Trainee trainee = new Trainee(100L, "Anna", "Ivanova", "Anna.Ivanova",
+                "pass", true, LocalDate.of(1995, 1, 1), "Almaty",
+                null, null);
+        TrainingType yogaType = new TrainingType("Yoga");
+        Trainer trainer = new Trainer(200L, "Elena", "Sokolova", "Elena.Sokolova",
+                "pass", true, yogaType, null, null);
+        return new Training(id, "Power Yoga", new TrainingType("Yoga"),
+                LocalDate.of(2024, 5, 10), 60, trainee, trainer);
     }
 }

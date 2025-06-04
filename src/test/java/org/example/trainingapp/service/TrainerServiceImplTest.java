@@ -2,7 +2,7 @@ package org.example.trainingapp.service;
 
 import org.example.trainingapp.dao.TrainerDao;
 import org.example.trainingapp.entity.Trainer;
-import org.example.trainingapp.entity.User;
+import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.service.impl.TrainerServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,8 +32,9 @@ class TrainerServiceImplTest {
     @Test
     void whenCreatingTrainer_shouldGenerateUsernameAndPassword() {
         // given
-        Trainer trainer = new Trainer(1L, new User("Dina", "Aliyeva", null, null,
-                false), "Yoga");
+        TrainingType yogaType = new TrainingType("Yoga");
+        Trainer trainer = new Trainer(1L, "Dina", "Aliyeva", null, null,
+                false, yogaType, null, null);
         when(trainerDao.findAll()).thenReturn(new ArrayList<>());
         // when
         trainerService.createTrainer(trainer);
@@ -42,31 +43,33 @@ class TrainerServiceImplTest {
         verify(trainerDao).save(captor.capture());
 
         Trainer saved = captor.getValue();
-        assertThat(saved.getUser().getUsername()).isEqualTo("Dina.Aliyeva");
-        assertThat(saved.getUser().getPassword()).isNotNull();
-        assertThat(saved.getUser().isActive()).isTrue();
+        assertThat(saved.getUsername()).isEqualTo("Dina.Aliyeva");
+        assertThat(saved.getPassword()).isNotNull();
+        assertThat(saved.isActive()).isTrue();
     }
 
 
     @Test
     void whenGettingTrainer_shouldReturnTrainer() {
         // given
-        Trainer trainer = new Trainer(2L, new User("Bauyrzhan", "Tulegenov",
-                "Bauyrzhan.Tulegenov", "pass123", true), "Boxing");
+        TrainingType boxingType = new TrainingType("Boxing");
+        Trainer trainer = new Trainer(2L, "Bauyrzhan", "Tulegenov", "Bauyrzhan.Tulegenov",
+                "pass123", true, boxingType, null, null);
         when(trainerDao.findById(2L)).thenReturn(Optional.of(trainer));
         // when
         Trainer result = trainerService.getTrainer(2L);
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getSpecialization()).isEqualTo("Boxing");
+        assertThat(result.getSpecialization().getName()).isEqualTo("Boxing");
     }
 
 
     @Test
     void whenUpdatingTrainer_shouldCallDaoUpdate() {
         // given
-        Trainer trainer = new Trainer(3L, new User("Aruzhan", "Kairat", "Aruzhan.Kairat",
-                "secure", true), "Pilates");
+        TrainingType pilatesType = new TrainingType("Pilates");
+        Trainer trainer = new Trainer(3L, "Aruzhan", "Kairat", "Aruzhan.Kairat",
+                "secure", true, pilatesType, null, null);
         // when
         trainerService.updateTrainer(trainer);
         // then

@@ -38,8 +38,8 @@ class CredentialsUtilTest {
         String password = CredentialsUtil.generatePassword(length);
         // then
         assertThat(password.length()).isEqualTo(length);
-        assertThat(password).matches("[A-Za-z0-9]+")
-                .withFailMessage("Password should contain only alphanumeric characters");
+        assertThat(password).withFailMessage("Password should contain only alphanumeric characters")
+                .matches("[A-Za-z0-9]+");
     }
 
 
@@ -49,6 +49,6 @@ class CredentialsUtilTest {
         String p1 = CredentialsUtil.generatePassword(10);
         String p2 = CredentialsUtil.generatePassword(10);
         // then
-        assertThat(p1).isNotEqualTo(p2).withFailMessage("Generated passwords should be different");
+        assertThat(p1).withFailMessage("Generated passwords should be different").isNotEqualTo(p2);
     }
 }
