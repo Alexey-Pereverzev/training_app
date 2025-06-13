@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
@@ -16,13 +17,18 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 
 @Configuration
 @ComponentScan(basePackages = "org.example.trainingapp")
 @EnableTransactionManagement
 @PropertySource(value = "classpath:application.yaml", factory = YamlPropertySourceFactory.class)
+@EnableAspectJAutoProxy
 public class AppConfig {
+
+    private static final Logger log = Logger.getLogger(AppConfig.class.getName());
+
     @Value("${database.url}")
     private String url;
 
@@ -42,6 +48,7 @@ public class AppConfig {
 
     @Bean
     public DataSource dataSource() {
+        log.info("Initializing DataSource with URL: " + url);
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(driverClassName);
         dataSource.setUrl(url);
@@ -53,6 +60,7 @@ public class AppConfig {
     @Bean
     @DependsOn("flyway")
     public LocalSessionFactoryBean sessionFactory() {
+        log.info("Setting up Hibernate SessionFactory...");
         LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
         sessionFactory.setDataSource(dataSource());
         sessionFactory.setPackagesToScan("org.example.trainingapp.entity");
@@ -61,6 +69,7 @@ public class AppConfig {
     }
 
     private Properties hibernateProperties() {
+        log.info("Configuring Hibernate properties...");
         Properties properties = new Properties();
         properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         properties.put("hibernate.hbm2ddl.auto", "validate");
@@ -71,11 +80,13 @@ public class AppConfig {
 
     @Bean
     public HibernateTransactionManager transactionManager(SessionFactory sessionFactory) {
+        log.info("Creating HibernateTransactionManager...");
         return new HibernateTransactionManager(sessionFactory);
     }
 
     @Bean
     public Flyway flyway(DataSource dataSource) {
+        log.info("Running Flyway migrations...");
         Flyway flyway = Flyway.configure()
                 .baselineOnMigrate(true)
                 .dataSource(dataSource)

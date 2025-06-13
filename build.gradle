@@ -23,9 +23,11 @@ dependencies {
     implementation "org.hibernate.orm:hibernate-core:6.4.4.Final"
     implementation "org.springframework:spring-orm:6.1.6"
     implementation "org.springframework:spring-jdbc:6.1.6"
-    implementation "org.postgresql:postgresql:42.7.5"
+    implementation "org.postgresql:postgresql:42.7.7"
     implementation 'org.flywaydb:flyway-core:11.9.0'
     implementation 'org.flywaydb:flyway-database-postgresql:11.9.0'
+    implementation 'org.springframework:spring-aop:6.2.7'
+    implementation 'org.aspectj:aspectjweaver:1.9.24'
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-core:5.10.0'

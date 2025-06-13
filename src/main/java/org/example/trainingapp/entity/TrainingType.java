@@ -6,6 +6,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Column;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -25,7 +26,16 @@ public class TrainingType {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, unique = true)
     @NonNull
     private String name;
+
+    @Transient
+    public TrainingTypeEnum getTypeEnum() {
+        return TrainingTypeEnum.valueOf(name.toUpperCase());
+    }
+
+    public void setTypeEnum(TrainingTypeEnum typeEnum) {
+        this.name = typeEnum.getDisplayName();
+    }
 }

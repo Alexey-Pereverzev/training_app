@@ -14,8 +14,8 @@ CREATE TABLE users (
 
 CREATE TABLE trainees (
     id BIGINT PRIMARY KEY REFERENCES users(id),
-    birth_date DATE NOT NULL,
-    location VARCHAR(255) NOT NULL
+    birth_date DATE NULL,
+    address VARCHAR(255) NULL
 );
 
 CREATE TABLE trainers (
