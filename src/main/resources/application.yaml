@@ -1,11 +1,22 @@
-trainee:
-  data:
-    path: classpath:data/trainees.csv
+database:
+  url: jdbc:postgresql://localhost:5432/training_app
+  username: postgres
+  password: 123
+  driver-class-name: org.postgresql.Driver
 
-trainer:
-  data:
-    path: classpath:data/trainers.csv
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: OFF
+        type:
+          descriptor:
+            sql:
+              BasicBinder: OFF
 
-training:
-  data:
-    path: classpath:data/trainings.csv
+spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+

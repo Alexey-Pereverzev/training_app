@@ -3,11 +3,9 @@ package org.example.trainingapp.dao.impl;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
-import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceUnit;
-import jakarta.persistence.TypedQuery;
-import org.example.trainingapp.dao.TrainerDao;
-import org.example.trainingapp.entity.Trainer;
+import org.example.trainingapp.dao.TrainingTypeDao;
+import org.example.trainingapp.entity.TrainingType;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,9 +14,9 @@ import java.util.logging.Logger;
 
 
 @Repository
-public class TrainerDaoImpl implements TrainerDao {
+public class TrainingTypeDaoImpl implements TrainingTypeDao {
 
-    private static final Logger logger = Logger.getLogger(TrainerDaoImpl.class.getName());
+    private static final Logger logger = Logger.getLogger(TrainingTypeDaoImpl.class.getName());
 
     @PersistenceUnit
     private EntityManagerFactory emf;
@@ -28,12 +26,12 @@ public class TrainerDaoImpl implements TrainerDao {
     }
 
     @Override
-    public void save(Trainer trainer) {
+    public void save(TrainingType trainingType) {
         try (EntityManager em = entityManager()) {
             EntityTransaction tx = em.getTransaction();
             try {
                 tx.begin();
-                em.persist(trainer);
+                em.persist(trainingType);
                 tx.commit();
             } catch (RuntimeException e) {
                 if (tx.isActive()) {
@@ -46,12 +44,12 @@ public class TrainerDaoImpl implements TrainerDao {
     }
 
     @Override
-    public void update(Trainer trainer) {
+    public void update(TrainingType trainingType) {
         try (EntityManager em = entityManager()) {
             EntityTransaction tx = em.getTransaction();
             try {
                 tx.begin();
-                em.merge(trainer);
+                em.merge(trainingType);
                 tx.commit();
             } catch (RuntimeException e) {
                 if (tx.isActive()) {
@@ -64,39 +62,16 @@ public class TrainerDaoImpl implements TrainerDao {
     }
 
     @Override
-    public Optional<Trainer> findById(Long id) {
+    public Optional<TrainingType> findById(Long id) {
         try (EntityManager em = entityManager()) {
-            return Optional.ofNullable(em.find(Trainer.class, id));
+            return Optional.ofNullable(em.find(TrainingType.class, id));
         }
     }
 
     @Override
-    public Optional<Trainer> findByUsername(String username) {
+    public List<TrainingType> findAll() {
         try (EntityManager em = entityManager()) {
-            TypedQuery<Trainer> query = em.createQuery("FROM Trainer WHERE username = :username", Trainer.class);
-            query.setParameter("username", username);
-            return query.getResultList().stream().findFirst();
-        }
-    }
-
-    @Override
-    public Optional<Trainer> findByUsernameWithTrainings(String username) {
-        try (EntityManager em = entityManager()) {
-            TypedQuery<Trainer> query = em.createQuery(
-                    "SELECT t FROM Trainer t LEFT JOIN FETCH t.trainings WHERE t.username = :username", Trainer.class);
-            query.setParameter("username", username);
-            try {
-                return Optional.of(query.getSingleResult());
-            } catch (NoResultException e) {
-                return Optional.empty();
-            }
-        }
-    }
-
-    @Override
-    public List<Trainer> findAll() {
-        try (EntityManager em = entityManager()) {
-            return em.createQuery("FROM Trainer", Trainer.class).getResultList();
+            return em.createQuery("FROM TrainingType", TrainingType.class).getResultList();
         }
     }
 
@@ -106,9 +81,9 @@ public class TrainerDaoImpl implements TrainerDao {
             EntityTransaction tx = em.getTransaction();
             try {
                 tx.begin();
-                Trainer trainer = em.find(Trainer.class, id);
-                if (trainer != null) {
-                    em.remove(trainer);
+                TrainingType type = em.find(TrainingType.class, id);
+                if (type != null) {
+                    em.remove(type);
                 }
                 tx.commit();
             } catch (RuntimeException e) {
@@ -118,6 +93,18 @@ public class TrainerDaoImpl implements TrainerDao {
                 logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
+        }
+    }
+
+    @Override
+    public Optional<TrainingType> findByName(String name) {
+        try (EntityManager em = entityManager()) {
+            TrainingType type = em.createQuery("FROM TrainingType WHERE name = :name", TrainingType.class)
+                    .setParameter("name", name)
+                    .getResultStream()
+                    .findFirst()
+                    .orElse(null);
+            return Optional.ofNullable(type);
         }
     }
 }
