@@ -52,9 +52,9 @@ src/
 │       └── db.migration     # Migrational scripts for Flyway
 │           
 ├── test/
-│   └── java/org.example.trainingapp/
-│       ├── service/         # Unit tests for service classes
-│       └── util/            # Unit tests for utility classes
+    └── java/org.example.trainingapp/
+        ├── service/         # Unit tests for service classes
+        └── util/            # Unit tests for utility classes
 ```
 
 ---
@@ -135,110 +135,178 @@ The project incorporates several established design patterns:
 
 ### Task implementation for module 3:
 
-- on the codebase created during the previous module implement follow functionality:
+**On the codebase created during the previous module implement follow functionality:**
 1. Create Trainer profile.
-- solution: TrainerServiceImpl.createTrainer(); 
+```
+solution: TrainerServiceImpl.createTrainer(); 
+```
 
 2. Create Trainee profile.
-- solution: TraineeServiceImpl.createTrainee();
+```
+solution: TraineeServiceImpl.createTrainee();
+```
 
 3. Trainee username and password matching.
 4. Trainer username and password matching.
-- solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER role and ownership of the method (true/false)
+```
+solution: class DaoAuthenticationService
+```
 
 5. Select Trainer profile by username.
-- solution: TrainerServiceImpl.getTrainerByUsername();
+```
+solution: TrainerServiceImpl.getTrainerByUsername();
+```
 
 6. Select Trainee profile by username.
-- solution: TraineeServiceImpl.getTraineeByUsername();
+```
+solution: TraineeServiceImpl.getTraineeByUsername();
+```
 
 7. Trainee password change.
-- solution: TraineeServiceImpl.changeTraineePassword();
+```
+solution: TraineeServiceImpl.changeTraineePassword();
+```
 
 8. Trainer password change.
-- solution: TrainerServiceImpl.changeTrainerPassword();
+```
+solution: TrainerServiceImpl.changeTrainerPassword();
+```
 
 9. Update trainer profile.
-- solution: TrainerServiceImpl.updateTrainer();
+```
+solution: TrainerServiceImpl.updateTrainer();
+```
 
 10. Update trainee profile.
-- solution: TraineeServiceImpl.updateTrainee();
+```
+solution: TraineeServiceImpl.updateTrainee();
+```
 
 11. Activate/De-activate trainee.
-- solution: TraineeServiceImpl.setTraineeActiveStatus();
+```
+solution: TraineeServiceImpl.setTraineeActiveStatus();
+```
 
 12. Activate/De-activate trainer.
-- solution: TrainerServiceImpl.setTrainerActiveStatus();
+```
+solution: TrainerServiceImpl.setTrainerActiveStatus();
+```
 
 13. Delete trainee profile by username.
-- solution: TraineeServiceImpl.deleteTraineeByUsername();
+```
+solution: TraineeServiceImpl.deleteTraineeByUsername();
+```
 
 14. Get Trainee Trainings List by trainee username and criteria (from date, to date, trainer name, training type).
-- solution: TraineeServiceImpl.getTraineeTrainings() - with Stream API filters
+```
+solution: TraineeServiceImpl.getTraineeTrainings() - with Stream API filters
+```
 
 15. Get Trainer Trainings List by trainer username and criteria (from date, to date, trainee name).
-- solution: TrainerServiceImpl.getTrainerTrainings() - with Stream API filters
+```
+solution: TrainerServiceImpl.getTrainerTrainings() - with Stream API filters
+```
 
 16. Add training.
-- solution: TrainingServiceImpl.createTraining();
+```
+solution: TrainingServiceImpl.createTraining();
+```
 
 17. Get trainers list that not assigned on trainee by trainee's username.
-- solution: TraineeServiceImpl.getAvailableTrainersForTrainee();
+```
+solution: TraineeServiceImpl.getAvailableTrainersForTrainee();
+```
 
 18. Update Trainee's trainers list
-- solution: TraineeServiceImpl.updateTraineeTrainers();
+```
+solution: TraineeServiceImpl.updateTraineeTrainers();
+```
 
-- notes:
+**Notes:**
 1. During Create Trainer/Trainee profile username and password should be generated as described in previous module.
-- solution: class CredentialsUtil
+```
+solution: class CredentialsUtil
+```
 
 2. All functions except Create Trainer/Trainee profile should be executed only after Trainee/Trainer authentication (on this step should be checked username and password matching)
-- solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER role and ownership of the method (true/false)
+```
+solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER role and ownership of the method (true/false)
+```
 
 3. Pay attention on required field validation before Create/Update action execution.
-- solution: class ValidationUtils
+```
+solution: class ValidationUtils
+```
 
 4. Users Table has parent-child (one to one) relation with Trainer and Trainee tables.
-- solution: used another approach with JOINED inheritance
+```
+solution: used another approach with JOINED inheritance
+```
 
 5. Trainees and Trainers have many to many relations.
-- solution: JoinTable trainers_trainees
+```
+solution: JoinTable trainers_trainees
+```
 
 6. Activate/De-activate Trainee/Trainer profile not idempotent action.
-- solution: changing isAcive status in DB using boolean parameter 
+```
+solution: changing isAcive status in DB using boolean parameter 
+```
 
 7. Delete Trainee profile is hard deleting action and bring the cascade deletion of relevant trainings.
-- solution: using cascade = CascadeType.ALL on trainings
+```
+solution: using cascade = CascadeType.ALL on trainings
+```
 
 8. Training duration have a number type.
-- solution: Integer trainingDuration field
+```
+solution: Integer trainingDuration field
+```
 
 9. Training Date, Trainee Date of Birth have Date type.
-- solution: LocalDate fields for dates
+```
+solution: LocalDate fields for dates
+```
 
 10. Training related to Trainee and Trainer by FK.
-- solution: @ManyToOne relationship via trainee/trainer id
+```
+solution: @ManyToOne relationship via trainee/trainer id
+```
 
 11. Is Active field in Trainee/Trainer profile has Boolean type.
-- solution: boolean "active" field in User
+```
+solution: boolean "active" field in User
+```
 
 12. Training Types table include constant list of values and could not be updated from the application.
-- solution: Enum TrainingTypeEnum for training type fields with validation during creation/updating of trainee/trainer 
+```
+solution: Enum TrainingTypeEnum for training type fields with validation during creation/updating of trainee/trainer 
+```
 
 13. Each table has its own PK.
-- solution: id fields with @Id annotation
+```
+solution: id fields with @Id annotation
+```
 
 14. Try to imagine what are the reason behind the decision to save Training and Training Type tables separately with one-to-many relation.
-- answer: we have benefits of data normalization, including reducing of duplication, code readability and simplification
+```
+answer: we have benefits of data normalization, including reducing of duplication, code readability and simplification
+```
 
 15. Use transaction management to perform actions in a transaction where it necessary.
-- solution: manual EntityTransaction management in DAO layer.
+```
+solution: manual EntityTransaction management in DAO layer.
+```
 
 16. Configure Hibernate for work with DBMS that you choose.
-- solution: AppConfig.hibernateProperties(), transactionManager()
+```
+solution: AppConfig.hibernateProperties(), transactionManager()
+```
 
 17. Cover code with unit tests. Code should contain proper logging.
-- solution: all services and utils are covered with unit tests.
+```
+solution: all services and utils are covered with unit tests.
+```
 
 ---
 
