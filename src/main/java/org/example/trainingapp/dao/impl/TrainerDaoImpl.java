@@ -12,10 +12,13 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 
 @Repository
 public class TrainerDaoImpl implements TrainerDao {
+
+    private static final Logger logger = Logger.getLogger(TrainerDaoImpl.class.getName());
 
     @PersistenceUnit
     private EntityManagerFactory emf;
@@ -36,6 +39,7 @@ public class TrainerDaoImpl implements TrainerDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
+                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
@@ -53,6 +57,7 @@ public class TrainerDaoImpl implements TrainerDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
+                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
@@ -110,6 +115,7 @@ public class TrainerDaoImpl implements TrainerDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
+                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }

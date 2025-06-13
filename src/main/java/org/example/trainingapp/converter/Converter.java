@@ -12,7 +12,6 @@ import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.entity.TrainingTypeEnum;
-import org.example.trainingapp.service.impl.TrainerServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +20,7 @@ import java.util.logging.Logger;
 
 @Component
 public class Converter {
-    private static final Logger log = Logger.getLogger(TrainerServiceImpl.class.getName());
+    private static final Logger log = Logger.getLogger(Converter.class.getName());
     private final TrainingTypeDao trainingTypeDao;
     private final TrainerDao trainerDao;
     private final TraineeDao traineeDao;

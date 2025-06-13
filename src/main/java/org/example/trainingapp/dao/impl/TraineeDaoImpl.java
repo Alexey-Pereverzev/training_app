@@ -8,7 +8,6 @@ import jakarta.persistence.PersistenceUnit;
 import jakarta.persistence.TypedQuery;
 import org.example.trainingapp.dao.TraineeDao;
 import org.example.trainingapp.entity.Trainee;
-import org.example.trainingapp.service.impl.DaoAuthenticationService;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,7 +18,7 @@ import java.util.logging.Logger;
 @Repository
 public class TraineeDaoImpl implements TraineeDao {
 
-    private static final Logger logger = Logger.getLogger(DaoAuthenticationService.class.getName());
+    private static final Logger logger = Logger.getLogger(TraineeDaoImpl.class.getName());
 
     @PersistenceUnit
     private EntityManagerFactory emf;

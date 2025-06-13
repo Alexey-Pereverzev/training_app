@@ -3,13 +3,12 @@ package org.example.trainingapp.util;
 import org.example.trainingapp.dto.TraineeDto;
 import org.example.trainingapp.dto.TrainerDto;
 import org.example.trainingapp.dto.TrainingDto;
-import org.example.trainingapp.service.impl.DaoAuthenticationService;
 
 import java.util.logging.Logger;
 
 public class ValidationUtils {
 
-    private static final Logger logger = Logger.getLogger(DaoAuthenticationService.class.getName());
+    private static final Logger logger = Logger.getLogger(ValidationUtils.class.getName());
     private ValidationUtils() {
         throw new UnsupportedOperationException("Utility class");
     }
