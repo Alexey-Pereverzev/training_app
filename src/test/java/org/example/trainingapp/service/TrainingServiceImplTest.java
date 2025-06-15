@@ -1,11 +1,12 @@
 package org.example.trainingapp.service;
 
+import org.example.trainingapp.converter.Converter;
 import org.example.trainingapp.dao.TrainingDao;
+import org.example.trainingapp.dto.TrainingDto;
 import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
-import org.example.trainingapp.entity.User;
 import org.example.trainingapp.service.impl.TrainingServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,11 +15,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +30,9 @@ class TrainingServiceImplTest {
     @Mock
     private TrainingDao trainingDao;
 
+    @Mock
+    private Converter converter;
+
     @InjectMocks
     private TrainingServiceImpl trainingService;
 
@@ -36,57 +40,82 @@ class TrainingServiceImplTest {
     @Test
     void whenCreatingTraining_shouldCallDaoSave() {
         // given
-        Training training = buildMockTraining(1L);
+        TrainingDto trainingDto = TrainingDto.builder()
+                .trainingName("Power Yoga")
+                .trainingType("Yoga")
+                .trainingDate(LocalDate.now())
+                .trainingDuration(60)
+                .traineeId(1L)
+                .trainerId(2L)
+                .build();
+        Training trainingEntity = buildMockTraining(1L);
+        when(converter.dtoToEntity(trainingDto)).thenReturn(trainingEntity);
         // when
-        trainingService.createTraining(training);
+        trainingService.createTraining("testUsername", "testPassword", trainingDto);
         // then
-        verify(trainingDao).save(training);
+        verify(trainingDao).save(trainingEntity);
     }
 
     @Test
-    void whenGettingTraining_shouldReturnTraining() {
+    void whenGettingTraining_shouldReturnTrainingDto() {
         // given
-        Training training = buildMockTraining(2L);
-        when(trainingDao.findById(2L)).thenReturn(Optional.of(training));
+        Long id = 1L;
+        Training trainingEntity = Training.builder()
+                .id(id)
+                .trainingName("Yoga Session")
+                .build();
+        TrainingDto trainingDto = TrainingDto.builder()
+                .id(id)
+                .trainingName("Yoga Session")
+                .build();
+        when(trainingDao.findById(id)).thenReturn(Optional.of(trainingEntity));
+        when(converter.entityToDto(trainingEntity)).thenReturn(trainingDto);
         // when
-        Training result = trainingService.getTraining(2L);
+        TrainingDto result = trainingService.getTraining("username", "password", id);
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getTrainingName()).isEqualTo("Power Yoga");
-        assertThat(result.getTrainingType().getName()).isEqualTo("Yoga");
+        assertThat(result.getId()).isEqualTo(id);
+        assertThat(result.getTrainingName()).isEqualTo("Yoga Session");
     }
 
-
     @Test
-    void whenGettingTrainingNotFound_shouldReturnNull() {
+    void whenGettingTrainingNotFound_shouldThrowException() {
         // given
         when(trainingDao.findById(99L)).thenReturn(Optional.empty());
-        // when
-        Training result = trainingService.getTraining(99L);
-        // then
-        assertThat(result).isNull();
+        // when, then
+        assertThatThrownBy(() -> trainingService.getTraining("testUsername", "testPassword", 99L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Training not found with ID: 99");
     }
 
 
     @Test
-    void whenGettingAllTrainings_shouldReturnList() {
+    void whenGettingAllTrainings_shouldReturnListOfDtos() {
         // given
-        Training t1 = buildMockTraining(1L);
-        Training t2 = buildMockTraining(2L);
-        when(trainingDao.findAll()).thenReturn(Arrays.asList(t1, t2));
+        Training training1 = Training.builder().id(1L).build();
+        Training training2 = Training.builder().id(2L).build();
+        TrainingDto dto1 = TrainingDto.builder().id(1L).build();
+        TrainingDto dto2 = TrainingDto.builder().id(2L).build();
+
+        when(trainingDao.findAll()).thenReturn(List.of(training1, training2));
+        when(converter.entityToDto(training1)).thenReturn(dto1);
+        when(converter.entityToDto(training2)).thenReturn(dto2);
         // when
-        List<Training> all = trainingService.getAllTrainings();
+        List<TrainingDto> result = trainingService.getAllTrainings("username", "password");
         // then
-        assertThat(all.size()).isEqualTo(2);
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(TrainingDto::getId).containsExactlyInAnyOrder(1L, 2L);
     }
 
 
     private Training buildMockTraining(Long id) {
-        Trainee trainee = new Trainee(100L, new User("Anna", "Ivanova", "Anna.Ivanova",
-                "pass", true), LocalDate.of(1995, 1, 1), "Almaty");
-        Trainer trainer = new Trainer(200L, new User("Elena", "Sokolova", "Elena.Sokolova",
-                "pass", true), "Yoga");
-        return new Training(id, "Power Yoga", new TrainingType("Yoga"), LocalDate.of(2024, 5,
-                10), 60, trainee, trainer);
+        Trainee trainee = new Trainee(100L, "Anna", "Ivanova", "Anna.Ivanova",
+                "pass", true, LocalDate.of(1995, 1, 1), "Almaty",
+                null, null);
+        TrainingType yogaType = new TrainingType("Yoga");
+        Trainer trainer = new Trainer(200L, "Elena", "Sokolova", "Elena.Sokolova",
+                "pass", true, yogaType, null, null);
+        return new Training(id, "Power Yoga", new TrainingType("Yoga"),
+                LocalDate.of(2024, 5, 10), 60, trainee, trainer);
     }
 }

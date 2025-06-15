@@ -1,47 +1,98 @@
 package org.example.trainingapp.dao.impl;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.PersistenceUnit;
 import org.example.trainingapp.dao.TrainingDao;
 import org.example.trainingapp.entity.Training;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Logger;
+
 
 @Repository
 public class TrainingDaoImpl implements TrainingDao {
 
-    private Map<Long, Training> trainingStorage;
+    private static final Logger logger = Logger.getLogger(TrainingDaoImpl.class.getName());
 
-    @Autowired
-    public void setTrainingStorage(Map<Long, Training> trainingStorage) {
-        this.trainingStorage = trainingStorage;
+    @PersistenceUnit
+    private EntityManagerFactory emf;
+
+    private EntityManager entityManager() {
+        return emf.createEntityManager();
     }
 
     @Override
     public void save(Training training) {
-        trainingStorage.put(training.getId(), training);
+        try (EntityManager em = entityManager()) {
+            EntityTransaction tx = em.getTransaction();
+            try {
+                tx.begin();
+                em.persist(training);
+                tx.commit();
+            } catch (RuntimeException e) {
+                if (tx.isActive()) {
+                    tx.rollback();
+                }
+                logger.severe("Transaction failed: " + e.getMessage());
+                throw e;
+            }
+        }
     }
 
     @Override
     public void update(Training training) {
-        trainingStorage.put(training.getId(), training);
+        try (EntityManager em = entityManager()) {
+            EntityTransaction tx = em.getTransaction();
+            try {
+                tx.begin();
+                em.merge(training);
+                tx.commit();
+            } catch (RuntimeException e) {
+                if (tx.isActive()) {
+                    tx.rollback();
+                }
+                logger.severe("Transaction failed: " + e.getMessage());
+                throw e;
+            }
+        }
     }
 
     @Override
     public Optional<Training> findById(Long id) {
-        return Optional.ofNullable(trainingStorage.get(id));
+        try (EntityManager em = entityManager()) {
+            return Optional.ofNullable(em.find(Training.class, id));
+        }
     }
 
     @Override
     public List<Training> findAll() {
-        return new ArrayList<>(trainingStorage.values());
+        try (EntityManager em = entityManager()) {
+            return em.createQuery("FROM Training", Training.class).getResultList();
+        }
     }
 
     @Override
     public void deleteById(Long id) {
-        trainingStorage.remove(id);
+        try (EntityManager em = entityManager()) {
+            EntityTransaction tx = em.getTransaction();
+            try {
+                tx.begin();
+                Training training = em.find(Training.class, id);
+                if (training != null) {
+                    em.remove(training);
+                }
+                tx.commit();
+            } catch (RuntimeException e) {
+                if (tx.isActive()) {
+                    tx.rollback();
+                }
+                logger.severe("Transaction failed: " + e.getMessage());
+                throw e;
+            }
+        }
     }
 }
