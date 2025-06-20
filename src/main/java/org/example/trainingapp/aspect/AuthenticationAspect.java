@@ -60,13 +60,14 @@ public class AuthenticationAspect {
                                                         //  if related entity is different from authenticated user
                                                         //  then throw an exception
                 for (Object arg : args) {
-                    Long id = null;
                     if (arg instanceof TraineeRequestDto traineeRequestDto) {          //  if passed as entity
-                        id = traineeRequestDto.getId();
-                    } else if (arg instanceof Long) {                    //  if passed via id
-                        id = (Long) arg;
-                    }
-                    if (id != null) {
+                        Optional<Trainee> dbTrainee = traineeDao.findByUsername(traineeRequestDto.getUsername());
+                        if (dbTrainee.isPresent() && !dbTrainee.get().getUsername().equals(username)) {
+                            String message = "Access denied for trainee: " + username;
+                            logger.warning(message);
+                            throw new SecurityException(message);
+                        }
+                    } else if (arg instanceof Long id) {                    //  if passed via id
                         Optional<Trainee> dbTrainee = traineeDao.findById(id);
                         if (dbTrainee.isPresent() && !dbTrainee.get().getUsername().equals(username)) {
                             String message = "Access denied for trainee: " + username + " (ID " + id

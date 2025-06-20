@@ -4,7 +4,6 @@ import org.apache.commons.lang3.EnumUtils;
 import org.example.trainingapp.aspect.RequiresAuthentication;
 import org.example.trainingapp.aspect.Role;
 import org.example.trainingapp.converter.Converter;
-import org.example.trainingapp.dao.TraineeDao;
 import org.example.trainingapp.dao.TrainerDao;
 import org.example.trainingapp.dao.TrainingTypeDao;
 import org.example.trainingapp.dto.CredentialsDto;
@@ -18,7 +17,6 @@ import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.entity.TrainingTypeEnum;
-import org.example.trainingapp.entity.User;
 import org.example.trainingapp.service.TrainerService;
 import org.example.trainingapp.util.CredentialsUtil;
 import org.example.trainingapp.util.ValidationUtils;
@@ -29,9 +27,7 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -39,15 +35,13 @@ public class TrainerServiceImpl implements TrainerService {
 
     private static final Logger log = Logger.getLogger(TrainerServiceImpl.class.getName());
     private final TrainerDao trainerDao;
-    private final TraineeDao traineeDao;
     private final Converter converter;
     private final TrainingTypeDao trainingTypeDao;
 
     @Autowired
-    public TrainerServiceImpl(TrainerDao trainerDao, TraineeDao traineeDao, Converter converter,
+    public TrainerServiceImpl(TrainerDao trainerDao, Converter converter,
                               TrainingTypeDao trainingTypeDao) {
         this.trainerDao = trainerDao;
-        this.traineeDao = traineeDao;
         this.converter = converter;
         this.trainingTypeDao = trainingTypeDao;
     }
@@ -57,7 +51,6 @@ public class TrainerServiceImpl implements TrainerService {
     public CredentialsDto createTrainer(TrainerRegisterDto trainerRegisterDto) {
         ValidationUtils.validateTrainer(trainerRegisterDto);
         Trainer trainer = converter.dtoToEntity(trainerRegisterDto);
-
         List<String> existingUsernames = trainerDao.findAll().stream()
                 .map(Trainer::getUsername)
                 .toList();
@@ -67,7 +60,6 @@ public class TrainerServiceImpl implements TrainerService {
                 existingUsernames
         );
         String password = CredentialsUtil.generatePassword(10);
-
         trainer.setUsername(username);
         trainer.setPassword(password);
         trainer.setActive(true);
@@ -104,6 +96,7 @@ public class TrainerServiceImpl implements TrainerService {
         log.info("Trainer updated: " + existing.getId());
     }
 
+
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINER})
     public void setNewPassword(String username, String oldPassword, String newPassword) {
@@ -121,6 +114,7 @@ public class TrainerServiceImpl implements TrainerService {
         return converter.entityToDto(trainer);
     }
 
+
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINER})
     public TrainerResponseDto getTrainerByUsername(String username, String password) {
@@ -131,12 +125,14 @@ public class TrainerServiceImpl implements TrainerService {
         return converter.entityToResponseDto(trainer, trainees);
     }
 
+
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINER}, checkOwnership = false)
     public List<TrainerDto> getAllTrainers(String username, String password) {
         log.info("Retrieved all trainers requested by: " + username);
         return trainerDao.findAll().stream().map(converter::entityToDto).toList();
     }
+
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINER})
@@ -147,6 +143,7 @@ public class TrainerServiceImpl implements TrainerService {
         log.info("Trainer password updated: " + trainer.getId());
     }
 
+
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINER})
     public void setTrainerActiveStatus(String username, String password, Long id, boolean isActive) {
@@ -155,6 +152,7 @@ public class TrainerServiceImpl implements TrainerService {
         trainerDao.update(trainer);
         log.info("Trainer active status changed: " + trainer.getId() + " to " + isActive);
     }
+
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINER})
@@ -190,7 +188,6 @@ public class TrainerServiceImpl implements TrainerService {
         log.info("Retrieved available trainees for Trainer: " + username);
         return trainees.stream().map(converter::entityToShortDto).toList();
     }
-
 
 
 

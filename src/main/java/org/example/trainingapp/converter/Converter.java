@@ -44,7 +44,7 @@ public class Converter {
         return Trainee.builder()
                 .firstName(traineeRequestDto.getFirstName())
                 .lastName(traineeRequestDto.getLastName())
-                .active(traineeRequestDto.isActive())
+                .active(traineeRequestDto.getActive())
                 .address(traineeRequestDto.getAddress())
                 .dateOfBirth(traineeRequestDto.getDateOfBirth())
                 .username(traineeRequestDto.getUsername())
@@ -108,7 +108,7 @@ public class Converter {
         return Trainer.builder()
                 .firstName(trainerDto.getFirstName())
                 .lastName(trainerDto.getLastName())
-                .active(trainerDto.isActive())
+                .active(trainerDto.getActive())
                 .specialization(type)
                 .username(trainerDto.getUsername())
                 .build();
