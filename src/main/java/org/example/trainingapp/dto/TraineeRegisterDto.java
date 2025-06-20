@@ -5,15 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrainerDto {
-    private Long id;
+public class TraineeRegisterDto {
     private String firstName;
     private String lastName;
-    private Boolean active;
-    private String specializationName;
-    private String username;
+    private String address;
+    private LocalDate dateOfBirth;
 }

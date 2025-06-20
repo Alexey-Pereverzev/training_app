@@ -3,9 +3,11 @@ package org.example.trainingapp.service.impl;
 import org.example.trainingapp.aspect.Role;
 import org.example.trainingapp.dao.TraineeDao;
 import org.example.trainingapp.dao.TrainerDao;
+import org.example.trainingapp.dto.CredentialsDto;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.service.AuthenticationService;
+import org.example.trainingapp.util.ValidationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -45,5 +47,12 @@ public class DaoAuthenticationService implements AuthenticationService {
 
         logger.severe("Authentication failed: No user found with username '" + username + "'");
         throw new SecurityException("Invalid credentials");
+    }
+
+    @Override
+    public String validateCredentials(CredentialsDto credentialsDto) {
+        ValidationUtils.validateCredentials(credentialsDto);
+        Role role = validateCredentials(credentialsDto.getUsername(), credentialsDto.getPassword());
+        return role.name();
     }
 }

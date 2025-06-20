@@ -94,6 +94,16 @@ public class TraineeDaoImpl implements TraineeDao {
     }
 
     @Override
+    public Optional<Trainee> findByUsernameWithTrainers(String username) {
+        try (EntityManager em = entityManager()) {
+            TypedQuery<Trainee> query = em.createQuery(
+                    "SELECT t FROM Trainee t LEFT JOIN FETCH t.trainers WHERE t.username = :username", Trainee.class);
+            query.setParameter("username", username);
+            return query.getResultList().stream().findFirst();
+        }
+    }
+
+    @Override
     public List<Trainee> findAll() {
         try (EntityManager em = entityManager()) {
             return em.createQuery("FROM Trainee", Trainee.class).getResultList();
@@ -120,4 +130,26 @@ public class TraineeDaoImpl implements TraineeDao {
             }
         }
     }
+
+
+    @Override
+    public void deleteByUsername(String username) {
+        try (EntityManager em = entityManager()) {
+            EntityTransaction tx = em.getTransaction();
+            try {
+                tx.begin();
+                Optional<Trainee> optionalTrainee = findByUsername(username);
+                optionalTrainee.ifPresent(em::remove);
+                tx.commit();
+            } catch (RuntimeException e) {
+                if (tx.isActive()) {
+                    tx.rollback();
+                }
+                logger.severe("Transaction failed: " + e.getMessage());
+                throw e;
+            }
+        }
+    }
+
+
 }

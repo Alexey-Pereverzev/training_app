@@ -1,6 +1,6 @@
 package org.example.trainingapp.util;
 
-import org.example.trainingapp.dto.TraineeDto;
+import org.example.trainingapp.dto.TraineeRequestDto;
 import org.example.trainingapp.dto.TrainerDto;
 import org.example.trainingapp.dto.TrainingDto;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ class ValidationUtilsTest {
     @Test
     void whenValidData_validateTrainee_shouldPass() {
         // given
-        TraineeDto trainee = TraineeDto.builder()
+        TraineeRequestDto trainee = TraineeRequestDto.builder()
                 .firstName("Ivan")
                 .lastName("Petrov")
                 .dateOfBirth(LocalDate.of(1990, 1, 1))
@@ -30,13 +30,13 @@ class ValidationUtilsTest {
     @Test
     void whenFirstNameIsNullOrBlank_validateTrainee_shouldThrow() {
         // given
-        TraineeDto trainee1 = TraineeDto.builder()
+        TraineeRequestDto trainee1 = TraineeRequestDto.builder()
                 .firstName(null)
                 .lastName("Petrov")
                 .dateOfBirth(LocalDate.of(1990, 1, 1))
                 .address("Almaty")
                 .build();
-        TraineeDto trainee2 = TraineeDto.builder()
+        TraineeRequestDto trainee2 = TraineeRequestDto.builder()
                 .firstName("  ")
                 .lastName("Petrov")
                 .dateOfBirth(LocalDate.of(1990, 1, 1))
@@ -54,7 +54,7 @@ class ValidationUtilsTest {
     @Test
     void whenLastNameIsNullOrBlank_validateTrainee_shouldThrow() {
         // given
-        TraineeDto trainee = TraineeDto.builder()
+        TraineeRequestDto trainee = TraineeRequestDto.builder()
                 .firstName("Ivan")
                 .lastName(" ")
                 .dateOfBirth(LocalDate.of(1990, 1, 1))

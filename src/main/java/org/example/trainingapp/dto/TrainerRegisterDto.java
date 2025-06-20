@@ -9,11 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrainerDto {
-    private Long id;
+public class TrainerRegisterDto {
     private String firstName;
     private String lastName;
-    private Boolean active;
     private String specializationName;
-    private String username;
 }

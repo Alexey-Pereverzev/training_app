@@ -1,11 +1,12 @@
 package org.example;
 
 import org.example.trainingapp.config.AppConfig;
-import org.example.trainingapp.dto.TraineeDto;
+import org.example.trainingapp.dto.TraineeRequestDto;
 import org.example.trainingapp.dto.TrainerDto;
 import org.example.trainingapp.dto.TrainingDto;
-import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.facade.TrainingSystemFacade;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.time.LocalDate;
@@ -13,9 +14,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Scanner;
 
-
+@SpringBootApplication
 public class Main {
-    public static void main(String[] args) throws InterruptedException {
+
+    public static void main(String[] args) {
+        SpringApplication.run(AppConfig.class, args);
+    }
+
+    public static void oldMain(String[] args) throws InterruptedException {
         AnnotationConfigApplicationContext context =
                 new AnnotationConfigApplicationContext(AppConfig.class);
 
@@ -32,11 +38,11 @@ public class Main {
         String testUsername = "Arman.Nurpeisov";
         String testPassword = "k6uaevsYV7";
 
-        System.out.println("\n=== Testing getAllTrainees with correct credentials ===");
-        listTrainees(facade, testUsername, testPassword);
-
-        System.out.println("\n=== Testing getAllTrainees with incorrect credentials ===");
-        listTrainees(facade, testUsername, "wrongPassword");
+//        System.out.println("\n=== Testing getAllTrainees with correct credentials ===");
+//        listTrainees(facade, testUsername, testPassword);
+//
+//        System.out.println("\n=== Testing getAllTrainees with incorrect credentials ===");
+//        listTrainees(facade, testUsername, "wrongPassword");
 
         listTrainers(facade, testUsername, testPassword);
         listTrainings(facade, testUsername, testPassword);
@@ -58,13 +64,13 @@ public class Main {
             System.out.print("Choose an option: ");
             String choice = scanner.nextLine();
             switch (choice) {
-                case "1" -> createTrainee(scanner, facade, formatter);
-                case "2" -> createTrainer(scanner, facade);
+//                case "1" -> createTrainee(scanner, facade, formatter);
+//                case "2" -> createTrainer(scanner, facade);
                 case "3" -> createTraining(scanner, facade, formatter, testUsername, testPassword);
-                case "4" -> listTrainees(facade, testUsername, testPassword);
+//                case "4" -> listTrainees(facade, testUsername, testPassword);
                 case "5" -> listTrainers(facade, testUsername, testPassword);
                 case "6" -> listTrainings(facade, testUsername, testPassword);
-                case "7" -> changeTraineePassword(scanner, facade);
+//                case "7" -> changeTraineePassword(scanner, facade);
                 case "8" -> getTrainerById(scanner, facade, testUsername, testPassword);
                 case "9" -> getTrainerTrainingsWithFilters(scanner, facade, testUsername, testPassword, formatter);
                 case "0" -> exit = true;
@@ -77,15 +83,15 @@ public class Main {
 
 
 
-    private static void listTrainees(TrainingSystemFacade facade, String testUsername, String testPassword) {
-        System.out.println("\n=== All Trainees ===");
-        try {
-            List<TraineeDto> trainees = facade.getTraineeService().getAllTrainees(testUsername, testPassword);
-            trainees.forEach(Main::printTrainee);
-        } catch (SecurityException e) {
-            System.out.println("Authentication failed: " + e.getMessage());
-        }
-    }
+//    private static void listTrainees(TrainingSystemFacade facade, String testUsername, String testPassword) {
+//        System.out.println("\n=== All Trainees ===");
+//        try {
+//            List<TraineeRequestDto> trainees = facade.getTraineeService().getAllTrainees(testUsername, testPassword);
+//            trainees.forEach(Main::printTrainee);
+//        } catch (SecurityException e) {
+//            System.out.println("Authentication failed: " + e.getMessage());
+//        }
+//    }
 
     private static void listTrainers(TrainingSystemFacade facade, String testUsername, String testPassword) {
         System.out.println("\n=== All Trainers ===");
@@ -108,10 +114,10 @@ public class Main {
     }
 
 
-    private static void printTrainee(TraineeDto t) {
-        System.out.printf("Trainee ID: %d | %s %s | %s | Address: %s%n",
-                t.getId(), t.getFirstName(), t.getLastName(), t.getUsername(), t.getAddress());
-    }
+//    private static void printTrainee(TraineeRequestDto t) {
+//        System.out.printf("Trainee ID: %d | %s %s | %s | Address: %s%n",
+//                t.getId(), t.getFirstName(), t.getLastName(), t.getUsername(), t.getAddress());
+//    }
 
     private static void printTrainer(TrainerDto t) {
         System.out.printf("Trainer ID: %d | %s %s | %s | Specialization: %s%n",
@@ -124,59 +130,59 @@ public class Main {
                 t.getTraineeId(), t.getTrainerId());
     }
 
-    private static void createTrainee(Scanner scanner, TrainingSystemFacade facade, DateTimeFormatter formatter) {
-        System.out.println("\n=== Creating new Trainee ===");
-        System.out.print("Enter first name: ");
-        String firstName = scanner.nextLine();
-        System.out.print("Enter last name: ");
-        String lastName = scanner.nextLine();
-        LocalDate date;
-        while (true) {
-            System.out.print("Enter date of birth (dd-MM-yyyy): ");
-            String dateInput = scanner.nextLine();
-            try {
-                date = LocalDate.parse(dateInput, formatter);
-                break;
-            } catch (Exception e) {
-                System.out.println("Invalid date format. Please enter again (dd-MM-yyyy).");
-            }
-        }
-        System.out.print("Enter address: ");
-        String address = scanner.nextLine();
-        TraineeDto newTrainee = TraineeDto.builder()
-                .dateOfBirth(date)
-                .address(address)
-                .firstName(firstName)
-                .lastName(lastName)
-                .build();
-        facade.getTraineeService().createTrainee(newTrainee);
-        printTrainee(newTrainee);
-    }
+//    private static void createTrainee(Scanner scanner, TrainingSystemFacade facade, DateTimeFormatter formatter) {
+//        System.out.println("\n=== Creating new Trainee ===");
+//        System.out.print("Enter first name: ");
+//        String firstName = scanner.nextLine();
+//        System.out.print("Enter last name: ");
+//        String lastName = scanner.nextLine();
+//        LocalDate date;
+//        while (true) {
+//            System.out.print("Enter date of birth (dd-MM-yyyy): ");
+//            String dateInput = scanner.nextLine();
+//            try {
+//                date = LocalDate.parse(dateInput, formatter);
+//                break;
+//            } catch (Exception e) {
+//                System.out.println("Invalid date format. Please enter again (dd-MM-yyyy).");
+//            }
+//        }
+//        System.out.print("Enter address: ");
+//        String address = scanner.nextLine();
+//        TraineeDto newTrainee = TraineeDto.builder()
+//                .dateOfBirth(date)
+//                .address(address)
+//                .firstName(firstName)
+//                .lastName(lastName)
+//                .build();
+//        facade.getTraineeService().createTrainee(newTrainee);
+//        printTrainee(newTrainee);
+//    }
 
-    private static void createTrainer(Scanner scanner, TrainingSystemFacade facade) {
-        System.out.println("\n=== Creating new Trainer ===");
-        System.out.print("Enter first name: ");
-        String firstName = scanner.nextLine();
-        System.out.print("Enter last name: ");
-        String lastName = scanner.nextLine();
-        TrainingType specialization = null;
-        while (specialization == null) {
-            System.out.print("Enter specialization name: ");
-            String specializationName = scanner.nextLine();
-            try {
-                specialization = facade.getConverter().getTrainingTypeByName(specializationName);
-            } catch (RuntimeException e) {
-                System.out.println("Error: " + e.getMessage() + ". Please try again.");
-            }
-        }
-        TrainerDto newTrainer = TrainerDto.builder()
-                .firstName(firstName)
-                .lastName(lastName)
-                .specializationName(specialization.getName())
-                .build();
-        facade.getTrainerService().createTrainer(newTrainer);
-        printTrainer(newTrainer);
-    }
+//    private static void createTrainer(Scanner scanner, TrainingSystemFacade facade) {
+//        System.out.println("\n=== Creating new Trainer ===");
+//        System.out.print("Enter first name: ");
+//        String firstName = scanner.nextLine();
+//        System.out.print("Enter last name: ");
+//        String lastName = scanner.nextLine();
+//        TrainingType specialization = null;
+//        while (specialization == null) {
+//            System.out.print("Enter specialization name: ");
+//            String specializationName = scanner.nextLine();
+//            try {
+//                specialization = facade.getConverter().getTrainingTypeByName(specializationName);
+//            } catch (RuntimeException e) {
+//                System.out.println("Error: " + e.getMessage() + ". Please try again.");
+//            }
+//        }
+//        TrainerDto newTrainer = TrainerDto.builder()
+//                .firstName(firstName)
+//                .lastName(lastName)
+//                .specializationName(specialization.getName())
+//                .build();
+//        facade.getTrainerService().createTrainer(newTrainer);
+//        printTrainer(newTrainer);
+//    }
 
     private static void createTraining(Scanner scanner, TrainingSystemFacade facade, DateTimeFormatter formatter,
                                        String testUsername, String testPassword) {
@@ -244,22 +250,22 @@ public class Main {
     }
 
 
-    private static void changeTraineePassword(Scanner scanner, TrainingSystemFacade facade) {
-        System.out.print("Enter Trainee username: ");
-        String username = scanner.nextLine();
-        System.out.print("Enter current password: ");
-        String currentPassword = scanner.nextLine();
-        System.out.print("Enter new password: ");
-        String newPassword = scanner.nextLine();
-        TraineeDto traineeDto = facade.getTraineeService().getTraineeByUsername(username, currentPassword);
-        Long id = traineeDto.getId();
-        try {
-            facade.getTraineeService().changeTraineePassword(username, currentPassword, id, newPassword);
-            System.out.println("Password updated successfully.");
-        } catch (RuntimeException e) {
-            System.out.println("Error updating password: " + e.getMessage());
-        }
-    }
+//    private static void changeTraineePassword(Scanner scanner, TrainingSystemFacade facade) {
+//        System.out.print("Enter Trainee username: ");
+//        String username = scanner.nextLine();
+//        System.out.print("Enter current password: ");
+//        String currentPassword = scanner.nextLine();
+//        System.out.print("Enter new password: ");
+//        String newPassword = scanner.nextLine();
+//        TraineeRequestDto traineeRequestDto = facade.getTraineeService().getTraineeByUsername(username, currentPassword);
+//        Long id = traineeRequestDto.getId();
+//        try {
+//            facade.getTraineeService().changeTraineePassword(username, currentPassword, id, newPassword);
+//            System.out.println("Password updated successfully.");
+//        } catch (RuntimeException e) {
+//            System.out.println("Error updating password: " + e.getMessage());
+//        }
+//    }
 
 
     private static void getTrainerById(Scanner scanner, TrainingSystemFacade facade, String testUsername,

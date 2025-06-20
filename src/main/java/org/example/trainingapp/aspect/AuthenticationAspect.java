@@ -5,7 +5,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.example.trainingapp.dao.TraineeDao;
 import org.example.trainingapp.dao.TrainerDao;
-import org.example.trainingapp.dto.TraineeDto;
+import org.example.trainingapp.dto.TraineeRequestDto;
 import org.example.trainingapp.dto.TrainerDto;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
@@ -61,8 +61,8 @@ public class AuthenticationAspect {
                                                         //  then throw an exception
                 for (Object arg : args) {
                     Long id = null;
-                    if (arg instanceof TraineeDto traineeDto) {          //  if passed as entity
-                        id = traineeDto.getId();
+                    if (arg instanceof TraineeRequestDto traineeRequestDto) {          //  if passed as entity
+                        id = traineeRequestDto.getId();
                     } else if (arg instanceof Long) {                    //  if passed via id
                         id = (Long) arg;
                     }

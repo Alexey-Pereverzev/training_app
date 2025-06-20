@@ -5,8 +5,12 @@ import org.example.trainingapp.aspect.Role;
 import org.example.trainingapp.converter.Converter;
 import org.example.trainingapp.dao.TraineeDao;
 import org.example.trainingapp.dao.TrainerDao;
-import org.example.trainingapp.dto.TraineeDto;
+import org.example.trainingapp.dto.CredentialsDto;
+import org.example.trainingapp.dto.TraineeRequestDto;
+import org.example.trainingapp.dto.TraineeRegisterDto;
+import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TrainerDto;
+import org.example.trainingapp.dto.TrainerShortDto;
 import org.example.trainingapp.dto.TrainingDto;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
@@ -44,10 +48,9 @@ public class TraineeServiceImpl implements TraineeService {
 
 
     @Override
-    public void createTrainee(TraineeDto traineeDto) {
-        ValidationUtils.validateTrainee(traineeDto);
-        Trainee trainee = converter.dtoToEntity(traineeDto);
-
+    public CredentialsDto createTrainee(TraineeRegisterDto traineeRegisterDto) {
+        ValidationUtils.validateTrainee(traineeRegisterDto);
+        Trainee trainee = converter.dtoToEntity(traineeRegisterDto);
         List<String> existingUsernames = traineeDao.findAll().stream()
                 .map(Trainee::getUsername)
                 .toList();
@@ -57,35 +60,50 @@ public class TraineeServiceImpl implements TraineeService {
                 existingUsernames
         );
         String password = CredentialsUtil.generatePassword(10);
-
         trainee.setUsername(generatedUsername);
         trainee.setPassword(password);
         trainee.setActive(true);
         traineeDao.save(trainee);
         log.info("Trainee created: " + trainee.getUsername());
+        return CredentialsDto.builder()
+                .username(trainee.getUsername())
+                .password(trainee.getPassword())
+                .build();
     }
 
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
-    public void updateTrainee(String username, String password, TraineeDto traineeDto) {
-        ValidationUtils.validateTrainee(traineeDto);
-        Trainee existing = getTrainee(traineeDto.getId());
-        existing.setFirstName(traineeDto.getFirstName());
-        existing.setLastName(traineeDto.getLastName());
-        existing.setAddress(traineeDto.getAddress());
-        existing.setDateOfBirth(traineeDto.getDateOfBirth());
-        existing.setActive(traineeDto.isActive());
+    public TraineeResponseDto updateTrainee(String username, String password, TraineeRequestDto traineeRequestDto) {
+        ValidationUtils.validateTrainee(traineeRequestDto);
+        Trainee existing = getTrainee(traineeRequestDto.getUsername());
+        existing.setFirstName(traineeRequestDto.getFirstName());
+        existing.setLastName(traineeRequestDto.getLastName());
+        existing.setAddress(traineeRequestDto.getAddress());
+        existing.setDateOfBirth(traineeRequestDto.getDateOfBirth());
+        existing.setActive(traineeRequestDto.getActive());
         traineeDao.update(existing);
         log.info("Trainee updated: " + existing.getId());
+        List<TrainerDto> trainers = getAvailableTrainersForTrainee(username, password);
+        return converter.entityToDto(existing, trainers);
     }
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
-    public void deleteTrainee(String username, String password, Long id) {
-        Trainee trainee = getTrainee(id);
-        traineeDao.deleteById(trainee.getId());
-        log.info("Trainee deleted: " + id);
+    public void setNewPassword(String username, String oldPassword, String newPassword) {
+        Trainee trainee = getTrainee(username);
+        trainee.setPassword(newPassword);
+        traineeDao.update(trainee);
+        log.info("Password updated for trainee " + username);
+    }
+
+
+    @Override
+    @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
+    public void deleteTrainee(String username, String password) {
+        ValidationUtils.validateUsername(username);
+        traineeDao.deleteByUsername(username);
+        log.info("Trainee deleted: " + username);
     }
 
     @Override
@@ -131,23 +149,26 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINEE, Role.TRAINER}, checkOwnership = false)
-    public TraineeDto getTrainee(String username, String password, Long id) {
+    public TraineeResponseDto getTrainee(String username, String password, Long id) {
         Trainee trainee = getTrainee(id);
         log.info("Retrieved Trainee: ID=" + id);
-        return converter.entityToDto(trainee);
+        List<TrainerDto> trainers = getAvailableTrainersForTrainee(username, password);
+        return converter.entityToDtoWithoutUsername(trainee, trainers);
     }
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
-    public TraineeDto getTraineeByUsername(String username, String password) {
+    public TraineeResponseDto getTraineeByUsername(String username, String password) {
+        ValidationUtils.validateUsername(username);
         Trainee trainee = getTrainee(username);
+        List<TrainerShortDto> trainers = getTrainersForTrainee(username, password);
         log.info("Retrieved Trainee by username: " + username);
-        return converter.entityToDto(trainee);
+        return converter.entityToResponseDto(trainee, trainers);
     }
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINER}, checkOwnership = false)
-    public List<TraineeDto> getAllTrainees(String username, String password) {
+    public List<TraineeRequestDto> getAllTrainees(String username, String password) {
         log.info("Retrieved all trainees requested by: " + username);
         return traineeDao.findAll().stream().map(converter::entityToDto).toList();
     }
@@ -156,7 +177,7 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
     public List<TrainerDto> getAvailableTrainersForTrainee(String username, String password) {
-        Optional<Trainee> traineeOpt = traineeDao.findByUsername(username);
+        Optional<Trainee> traineeOpt = traineeDao.findByUsernameWithTrainers(username);
         if (traineeOpt.isEmpty()) {
             log.warning("No Trainee found for username: " + username);
             return Collections.emptyList();
@@ -171,6 +192,22 @@ public class TraineeServiceImpl implements TraineeService {
         log.info("Retrieved available trainers for Trainee: " + username);
         return trainers.stream().map(converter::entityToDto).toList();
     }
+
+    @Override
+    @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
+    public List<TrainerShortDto> getTrainersForTrainee(String username, String password) {
+        Optional<Trainee> optionalTrainee = traineeDao.findByUsernameWithTrainers(username);
+        if (optionalTrainee.isEmpty()) {
+            log.warning("No Trainee found for username: " + username);
+            return Collections.emptyList();
+        }
+        Trainee trainee = optionalTrainee.get();
+        List<Trainer> trainers = trainee.getTrainers();
+        log.info("Retrieved available trainers for Trainee: " + username);
+        return trainers.stream().map(converter::entityToShortDto).toList();
+    }
+
+
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINEE})

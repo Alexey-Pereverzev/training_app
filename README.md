@@ -46,7 +46,7 @@ src/
 │   │   ├── entity/          # Domain model: Trainee, Trainer, etc.
 │   │   ├── facade/          # System facade
 │   │   ├── service/         # Interfaces and implementations
-│   │   └── util/            # Utilities (username/password generation)
+│   │   └── util/            # Utilities 
 │   └── resources/
 │       ├── application.yml
 │       └── db.migration     # Migrational scripts for Flyway
@@ -117,7 +117,7 @@ SEVERE: Critical error during data loading
 
 ## Notes
 
-- Credentials (username/password) are generated dynamically and stored in-memory.
+- Credentials (username/password) are generated dynamically and stored in DB.
 - Usernames are generated with duplicates prevented.
 - Passwords and other sensitive data are **never** logged; only usernames, IDs, or non-confidential fields appear in logs.
 - 100% test coverage of services and utils.

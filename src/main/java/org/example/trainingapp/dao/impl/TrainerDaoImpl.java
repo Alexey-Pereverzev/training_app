@@ -7,6 +7,7 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceUnit;
 import jakarta.persistence.TypedQuery;
 import org.example.trainingapp.dao.TrainerDao;
+import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.springframework.stereotype.Repository;
 
@@ -90,6 +91,16 @@ public class TrainerDaoImpl implements TrainerDao {
             } catch (NoResultException e) {
                 return Optional.empty();
             }
+        }
+    }
+
+    @Override
+    public Optional<Trainer> findByUsernameWithTrainees(String username) {
+        try (EntityManager em = entityManager()) {
+            TypedQuery<Trainer> query = em.createQuery(
+                    "SELECT t FROM Trainer t LEFT JOIN FETCH t.trainees WHERE t.username = :username", Trainer.class);
+            query.setParameter("username", username);
+            return query.getResultList().stream().findFirst();
         }
     }
 

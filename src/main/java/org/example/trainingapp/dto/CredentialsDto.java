@@ -9,11 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrainerDto {
-    private Long id;
-    private String firstName;
-    private String lastName;
-    private Boolean active;
-    private String specializationName;
+public class CredentialsDto {
     private String username;
+    private String password;
 }
