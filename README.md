@@ -18,17 +18,18 @@ This is a modular Java 21 application built using **pure Spring Core (without Sp
 
 ## Technologies Used
 
-| Component       | Technology                |
-|-----------------|---------------------------|
-| Language        | Java 21                   |
-| Framework       | Spring Core 6             |
-| Dependency Tool | Gradle                    |
-| Logging         | java.util.logging         |
-| JPA             | Hibernate                 |
-| Tests           | JUnit 5, Mockito          |
-| Configuration   | YAML (`application.yaml`) |
-| Storage         | PostgreSQL                |
-| Migration       | Flyway                    |
+| Component         | Technology                |
+|-------------------|---------------------------|
+| Language          | Java 21                   |
+| Framework         | Spring Core 6             |
+| Dependency Tool   | Gradle                    |
+| Logging           | Slf4j                     |
+| JPA               | Hibernate                 |
+| Tests             | JUnit 5, Mockito          |
+| Configuration     | YAML (`application.yaml`) |
+| Storage           | PostgreSQL                |
+| Migration         | Flyway                    |
+| API documentation | Swagger                   |
 
 ---
 
@@ -38,17 +39,19 @@ This is a modular Java 21 application built using **pure Spring Core (without Sp
 src/
 ├── main/
 │   ├── java/org.example.trainingapp/
-│   │   ├── aspect/          # AOP authentication check
+│   │   ├── aspect/          # AOP: authentication check, transaction logging
 │   │   ├── config/          # Spring config classes
+│   │   ├── controller/      # REST controllers
 │   │   ├── converter/       # Entity <-> DTO conversion
 │   │   ├── dao/             # DAO interfaces and implementations
 │   │   ├── dto/             # DTO for service layer
 │   │   ├── entity/          # Domain model: Trainee, Trainer, etc.
-│   │   ├── facade/          # System facade
-│   │   ├── service/         # Interfaces and implementations
+│   │   ├── exception/       # Custom exceptions and Controller Advice
+│   │   ├── service/         # Business logic layer
 │   │   └── util/            # Utilities 
 │   └── resources/
 │       ├── application.yml
+│       ├── logback.xml
 │       └── db.migration     # Migrational scripts for Flyway
 │           
 ├── test/
@@ -74,13 +77,19 @@ cd training_app
 ./gradlew clean build
 ```
 
-### 3. Run the application
+### 3. Copy trainingapp.war into tomcat /webapps directory
 
 ```bash
-./gradlew run
+cp build/libs/trainingapp.war /path/to/tomcat/webapps/
 ```
 
-Output will include logs and entity details loaded from DB.
+### 4. Run Tomcat
+
+```bash
+/path/to/tomcat/bin/startup.bat
+```
+
+### 5. Use Postman to run requests
 
 ---
 
@@ -91,12 +100,15 @@ Output will include logs and entity details loaded from DB.
 ```
 
 Test coverage includes:
+- DaoAuthenticationService
 - TraineeServiceImpl
 - TrainerServiceImpl
 - TrainingServiceImpl
+- TrainingTypeServiceImpl
+- UserServiceImpl
+- AuthUtil
 - CredentialsUtil
 - ValidationUtils
-- DaoAuthenticationService
 
 You can find test classes under:
 ```
@@ -108,9 +120,10 @@ src/test/java/org.example.trainingapp/
 ## Example Logs
 
 ```
-INFO: Created trainee: Alina.Iskakova
-WARNING: Trainer not found: ID=123
-SEVERE: Critical error during data loading
+23:05:19.003 [http-nio-8080-exec-2] INFO  o.e.t.a.TransactionLoggingAspect - [1b2ff78a-8369-4f79-98de-b2961b802484] TX-SUCCESS id=1b2ff78a-8369-4f79-98de-b2961b802484
+23:05:19.027 [http-nio-8080-exec-2] INFO  o.e.t.config.RestLoggingInterceptor - [] REST-OUT POST /trainingapp/api/trainees/register -> 201
+23:05:14.157 [main] WARN  org.hibernate.orm.deprecation - [] HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+ERROR: Critical error 
 ```
 
 ---
@@ -128,99 +141,99 @@ The project incorporates several established design patterns:
 - **DTO** – TraineeDto, TrainerDto, TrainingDto for service layer.
 - **DAO** – abstracts in-memory data operations via `TraineeDao`, `TrainerDao`, and `TrainingDao`.
 - **Service Layer** – encapsulates business logic through `TraineeService`, `TrainerService`, and `TrainingService`.
-- **Facade Pattern** – `TrainingSystemFacade` provides a unified interface for accessing multiple service layers.
 - **Factory Pattern** – `YamlPropertySourceFactory` dynamically loads configuration from YAML files.
 - **Builder** – Dto.builder() via Lombok.
 - **Singleton** – Spring-managed beans.
+- **Exception Handling (Controller Advice)** – Global error handling via ControllerAdvice
 
-### Task implementation for module 3:
+### Task implementation for module 4:
 
-**On the codebase created during the previous module implement follow functionality:**
-1. Create Trainer profile.
+**Based on the codebase created during the previous module, implement follow REST API (as a RestController):**
+1. Trainee Registration (POST method).
 ```
-solution: TrainerServiceImpl.createTrainer(); 
-```
-
-2. Create Trainee profile.
-```
-solution: TraineeServiceImpl.createTrainee();
+solution: TraineeController.registerTrainee(); 
 ```
 
-3. Trainee username and password matching.
-4. Trainer username and password matching.
+2. Trainer Registration (POST method).
 ```
-solution: class DaoAuthenticationService
-```
-
-5. Select Trainer profile by username.
-```
-solution: TrainerServiceImpl.getTrainerByUsername();
+solution: TrainerController.registerTrainer();
 ```
 
-6. Select Trainee profile by username.
+3. Login (GET method).
 ```
-solution: TraineeServiceImpl.getTraineeByUsername();
-```
-
-7. Trainee password change.
-```
-solution: TraineeServiceImpl.changeTraineePassword();
+solution: UserController.login();
 ```
 
-8. Trainer password change.
+4. Change Login (PUT method).
 ```
-solution: TrainerServiceImpl.changeTrainerPassword();
-```
-
-9. Update trainer profile.
-```
-solution: TrainerServiceImpl.updateTrainer();
+solution: UserController.changePassword();
 ```
 
-10. Update trainee profile.
+5. Get Trainee Profile (GET method).
 ```
-solution: TraineeServiceImpl.updateTrainee();
-```
-
-11. Activate/De-activate trainee.
-```
-solution: TraineeServiceImpl.setTraineeActiveStatus();
+solution: TraineeController.getTrainee();
 ```
 
-12. Activate/De-activate trainer.
+6. Update Trainee Profile (PUT method).
 ```
-solution: TrainerServiceImpl.setTrainerActiveStatus();
-```
-
-13. Delete trainee profile by username.
-```
-solution: TraineeServiceImpl.deleteTraineeByUsername();
+solution: TraineeController.updateTrainee();
 ```
 
-14. Get Trainee Trainings List by trainee username and criteria (from date, to date, trainer name, training type).
+7. Delete Trainee Profile (DELETE method).
 ```
-solution: TraineeServiceImpl.getTraineeTrainings() - with Stream API filters
-```
-
-15. Get Trainer Trainings List by trainer username and criteria (from date, to date, trainee name).
-```
-solution: TrainerServiceImpl.getTrainerTrainings() - with Stream API filters
+solution: TraineeController.deleteTrainee();
 ```
 
-16. Add training.
+8. Get Trainer Profile (GET method).
 ```
-solution: TrainingServiceImpl.createTraining();
-```
-
-17. Get trainers list that not assigned on trainee by trainee's username.
-```
-solution: TraineeServiceImpl.getAvailableTrainersForTrainee();
+solution: TrainerController.getTrainer();
 ```
 
-18. Update Trainee's trainers list
+9. Update Trainer Profile (PUT method).
 ```
-solution: TraineeServiceImpl.updateTraineeTrainers();
+solution: TrainerController.updateTrainer();
 ```
+
+10. Get not assigned on trainee active trainers. (GET method).
+```
+solution: TraineeController.getAvailableTrainers();
+```
+
+11. Update Trainee's Trainer List (PUT method).
+```
+solution: TraineeController.updateTrainerList();
+```
+
+12. Get Trainee Trainings List (GET method).
+```
+solution: TraineeController.getTraineeTrainings();
+```
+
+13. Get Trainer Trainings List (GET method).
+```
+solution: TrainerController.getTrainerTrainings();
+```
+
+14. Add Training (POST method).
+```
+solution: TrainingController.addTraining();
+```
+
+15. Activate/De-Activate Trainee (PATCH method).
+```
+solution: TraineeController.setActiveStatus() - with Stream API filters
+```
+
+16. Activate/De-Activate Trainer (PATCH method).
+```
+solution: TrainerController.setActiveStatus() - - with Stream API filters
+```
+
+17. Get Training types (GET method).
+```
+solution: TrainingTypeController.getTrainingTypes();
+```
+
 
 **Notes:**
 1. During Create Trainer/Trainee profile username and password should be generated as described in previous module.
@@ -228,84 +241,96 @@ solution: TraineeServiceImpl.updateTraineeTrainers();
 solution: class CredentialsUtil
 ```
 
-2. All functions except Create Trainer/Trainee profile should be executed only after Trainee/Trainer authentication (on this step should be checked username and password matching)
+2. Not possible to register as a trainer and trainee both.
+```
+solution: registering a trainee and a trainer are separate operations with unique username and password generated 
+```
+
+3. All functions except Create Trainer/Trainee profile should be executed only after Trainee/Trainer authentication (on this step should be checked username and password matching)
 ```
 solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER role and ownership of the method (true/false)
 ```
 
-3. Pay attention on required field validation before Create/Update action execution.
+4. Implement required validation for each endpoint.
 ```
 solution: class ValidationUtils
 ```
 
-4. Users Table has parent-child (one to one) relation with Trainer and Trainee tables.
+5. Users Table has parent-child (one to one) relation with Trainer and Trainee tables.
 ```
 solution: used another approach with JOINED inheritance
 ```
 
-5. Trainees and Trainers have many to many relations.
+6. Training functionality does not include delete/update possibility via REST.
+```
+solution: only creating and getting of Trainings are available via REST
+```
+
+7. Username cannot be changed.
+```
+solution: updateTrainee() / updateTrainer() functions does not allow to change username of the user
+```
+
+8. Trainees and Trainers have many to many relations.
 ```
 solution: JoinTable trainers_trainees
 ```
 
-6. Activate/De-activate Trainee/Trainer profile not idempotent action.
+9. Activate/De-activate Trainee/Trainer profile not idempotent action.
 ```
 solution: changing isAcive status in DB using boolean parameter 
 ```
 
-7. Delete Trainee profile is hard deleting action and bring the cascade deletion of relevant trainings.
+10. Delete Trainee profile is hard deleting action and bring the cascade deletion of relevant trainings.
 ```
 solution: using cascade = CascadeType.ALL on trainings
 ```
 
-8. Training duration have a number type.
+11. Training duration have a number type.
 ```
 solution: Integer trainingDuration field
 ```
 
-9. Training Date, Trainee Date of Birth have Date type.
+12. Training Date, Trainee Date of Birth have Date type.
 ```
 solution: LocalDate fields for dates
 ```
 
-10. Training related to Trainee and Trainer by FK.
+13. Is Active field in Trainee/Trainer profile has Boolean type.
 ```
-solution: @ManyToOne relationship via trainee/trainer id
-```
-
-11. Is Active field in Trainee/Trainer profile has Boolean type.
-```
-solution: boolean "active" field in User
+solution: Boolean "active" field in User
 ```
 
-12. Training Types table include constant list of values and could not be updated from the application.
+14. Training Types table include constant list of values and could not be updated from the application.
 ```
 solution: Enum TrainingTypeEnum for training type fields with validation during creation/updating of trainee/trainer 
 ```
 
-13. Each table has its own PK.
+15. Implement error handling for all endpoints.
 ```
-solution: id fields with @Id annotation
-```
-
-14. Try to imagine what are the reason behind the decision to save Training and Training Type tables separately with one-to-many relation.
-```
-answer: we have benefits of data normalization, including reducing of duplication, code readability and simplification
+solution: class GlobalExceptionHandler
 ```
 
-15. Use transaction management to perform actions in a transaction where it necessary.
-```
-solution: manual EntityTransaction management in DAO layer.
-```
-
-16. Configure Hibernate for work with DBMS that you choose.
-```
-solution: AppConfig.hibernateProperties(), transactionManager()
-```
-
-17. Cover code with unit tests. Code should contain proper logging.
+16. Cover code with unit tests. 
 ```
 solution: all services and utils are covered with unit tests.
+```
+
+17. Two levels of logging should be implemented:
+a. Transaction level (generate transactionId by which you can track all operations for this transaction the same transactionId can later be passed to downstream services)
+b. Specific rest call details (which endpoint was called, which request came and the service response - 200 or error and response message). 
+```
+solution: class TransactionLoggingAspect + class RestLoggingInterceptor
+```
+
+18. Implement error handling. 
+```
+solution: class GlobalExceptionHandler
+```
+
+19. Document methods in RestController file(s) using Swagger 2 annotations. 
+```
+solution: Swagger v3 annotations used
 ```
 
 ---

@@ -10,13 +10,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.Logger;
 
 
 @Repository
 public class TrainingTypeDaoImpl implements TrainingTypeDao {
-
-    private static final Logger logger = Logger.getLogger(TrainingTypeDaoImpl.class.getName());
 
     @PersistenceUnit
     private EntityManagerFactory emf;
@@ -24,6 +21,7 @@ public class TrainingTypeDaoImpl implements TrainingTypeDao {
     private EntityManager entityManager() {
         return emf.createEntityManager();
     }
+
 
     @Override
     public void save(TrainingType trainingType) {
@@ -37,11 +35,11 @@ public class TrainingTypeDaoImpl implements TrainingTypeDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 
     @Override
     public void update(TrainingType trainingType) {
@@ -55,11 +53,11 @@ public class TrainingTypeDaoImpl implements TrainingTypeDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 
     @Override
     public Optional<TrainingType> findById(Long id) {
@@ -68,12 +66,14 @@ public class TrainingTypeDaoImpl implements TrainingTypeDao {
         }
     }
 
+
     @Override
     public List<TrainingType> findAll() {
         try (EntityManager em = entityManager()) {
             return em.createQuery("FROM TrainingType", TrainingType.class).getResultList();
         }
     }
+
 
     @Override
     public void deleteById(Long id) {
@@ -90,11 +90,11 @@ public class TrainingTypeDaoImpl implements TrainingTypeDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 
     @Override
     public Optional<TrainingType> findByName(String name) {
@@ -107,4 +107,5 @@ public class TrainingTypeDaoImpl implements TrainingTypeDao {
             return Optional.ofNullable(type);
         }
     }
+
 }

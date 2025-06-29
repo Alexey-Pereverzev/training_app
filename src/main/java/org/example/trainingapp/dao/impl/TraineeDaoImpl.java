@@ -3,7 +3,6 @@ package org.example.trainingapp.dao.impl;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
-import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceUnit;
 import jakarta.persistence.TypedQuery;
 import org.example.trainingapp.dao.TraineeDao;
@@ -12,13 +11,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.Logger;
 
 
 @Repository
 public class TraineeDaoImpl implements TraineeDao {
-
-    private static final Logger logger = Logger.getLogger(TraineeDaoImpl.class.getName());
 
     @PersistenceUnit
     private EntityManagerFactory emf;
@@ -26,6 +22,7 @@ public class TraineeDaoImpl implements TraineeDao {
     private EntityManager entityManager() {
         return emf.createEntityManager();
     }
+
 
     @Override
     public void save(Trainee trainee) {
@@ -39,11 +36,11 @@ public class TraineeDaoImpl implements TraineeDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 
     @Override
     public void update(Trainee trainee) {
@@ -57,11 +54,11 @@ public class TraineeDaoImpl implements TraineeDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 
     @Override
     public Optional<Trainee> findById(Long id) {
@@ -69,6 +66,7 @@ public class TraineeDaoImpl implements TraineeDao {
             return Optional.ofNullable(em.find(Trainee.class, id));
         }
     }
+
 
     @Override
     public Optional<Trainee> findByUsername(String username) {
@@ -79,19 +77,18 @@ public class TraineeDaoImpl implements TraineeDao {
         }
     }
 
+
     @Override
     public Optional<Trainee> findByUsernameWithTrainings(String username) {
         try (EntityManager em = entityManager()) {
             TypedQuery<Trainee> query = em.createQuery(
-                    "SELECT t FROM Trainee t LEFT JOIN FETCH t.trainings WHERE t.username = :username", Trainee.class);
+                    "SELECT DISTINCT t FROM Trainee t LEFT JOIN FETCH t.trainings tr LEFT JOIN FETCH tr.trainer " +
+                            "LEFT JOIN FETCH tr.trainingType WHERE t.username = :username", Trainee.class);
             query.setParameter("username", username);
-            try {
-                return Optional.of(query.getSingleResult());
-            } catch (NoResultException e) {
-                return Optional.empty();
-            }
+            return query.getResultList().stream().findFirst();
         }
     }
+
 
     @Override
     public Optional<Trainee> findByUsernameWithTrainers(String username) {
@@ -103,12 +100,14 @@ public class TraineeDaoImpl implements TraineeDao {
         }
     }
 
+
     @Override
     public List<Trainee> findAll() {
         try (EntityManager em = entityManager()) {
             return em.createQuery("FROM Trainee", Trainee.class).getResultList();
         }
     }
+
 
     @Override
     public void deleteById(Long id) {
@@ -125,7 +124,6 @@ public class TraineeDaoImpl implements TraineeDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
@@ -145,11 +143,9 @@ public class TraineeDaoImpl implements TraineeDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
-
 
 }

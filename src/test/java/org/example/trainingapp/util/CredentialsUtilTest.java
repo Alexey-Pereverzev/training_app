@@ -1,7 +1,6 @@
 package org.example.trainingapp.util;
 
 import org.junit.jupiter.api.Test;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,9 +10,9 @@ class CredentialsUtilTest {
     @Test
     void whenUsernameExists_shouldGenerateUniqueUsernameWithSuffix() {
         // given
-        List<String> existing = List.of("Ivan.Petrov", "Ivan.Petrov1", "Ivan.Petrov2");
+        long count = 3L;
         // when
-        String username = CredentialsUtil.generateUsername("Ivan", "Petrov", existing);
+        String username = CredentialsUtil.generateUsername("Ivan", "Petrov", count);
         // then
         assertThat(username).isEqualTo("Ivan.Petrov3");
     }
@@ -22,9 +21,9 @@ class CredentialsUtilTest {
     @Test
     void whenNoUsernameExists_shouldGenerateBasicUsername() {
         // given
-        List<String> existing = List.of();
+        long count = 0L;
         // when
-        String username = CredentialsUtil.generateUsername("Anna", "Ivanova", existing);
+        String username = CredentialsUtil.generateUsername("Anna", "Ivanova", count);
         // then
         assertThat(username).isEqualTo("Anna.Ivanova");
     }

@@ -1,7 +1,6 @@
 package org.example.trainingapp.util;
 
 import java.security.SecureRandom;
-import java.util.List;
 
 
 public class CredentialsUtil {
@@ -17,14 +16,8 @@ public class CredentialsUtil {
         return sb.toString();
     }
 
-    public static String generateUsername(String firstName, String lastName, List<String> existingUsernames) {
+    public static String generateUsername(String firstName, String lastName, long existingCount) {
         String base = firstName + "." + lastName;
-        String candidate = base;
-        int counter = 1;
-        while (existingUsernames.contains(candidate)) {
-            candidate = base + counter;
-            counter++;
-        }
-        return candidate;
+        return existingCount == 0 ? base : base + existingCount;
     }
 }

@@ -17,6 +17,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+
 @ExtendWith(MockitoExtension.class)
 class DaoAuthenticationServiceTest {
 
@@ -36,7 +37,7 @@ class DaoAuthenticationServiceTest {
         trainer.setPassword("pw123");
         when(trainerDao.findByUsername("trainer1")).thenReturn(Optional.of(trainer));
         // when
-        Role role = authService.validateCredentials("trainer1", "pw123");
+        Role role = authService.authorize("trainer1", "pw123");
         // then
         assertThat(role).isEqualTo(Role.TRAINER);
     }
@@ -49,7 +50,7 @@ class DaoAuthenticationServiceTest {
         when(trainerDao.findByUsername("trainee1")).thenReturn(Optional.empty());
         when(traineeDao.findByUsername("trainee1")).thenReturn(Optional.of(trainee));
         // when
-        Role role = authService.validateCredentials("trainee1", "pw456");
+        Role role = authService.authorize("trainee1", "pw456");
         // then
         assertThat(role).isEqualTo(Role.TRAINEE);
     }
@@ -61,7 +62,7 @@ class DaoAuthenticationServiceTest {
         when(traineeDao.findByUsername("invalid")).thenReturn(Optional.empty());
         // when + then
         assertThatThrownBy(() ->
-                authService.validateCredentials("invalid", "wrongpass"))
+                authService.authorize("invalid", "wrongpass"))
                 .isInstanceOf(SecurityException.class)
                 .hasMessage("Invalid credentials");
     }

@@ -123,3 +123,124 @@ VALUES
  (SELECT id FROM users WHERE username='Aliya.Kairbekova'),
  (SELECT id FROM users WHERE username='Bekzat.Tursynov'));
 
+
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Elena.Zharkynbaeva'),
+       (SELECT id FROM users WHERE username = 'Alina.Iskakova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Arman.Nurpeisov'),
+       (SELECT id FROM users WHERE username = 'Marat.Nurgaliyev')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Oksana.Mikhaylova'),
+       (SELECT id FROM users WHERE username = 'Natalia.Petrova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Bekzat.Tursynov'),
+       (SELECT id FROM users WHERE username = 'Bagdat.Serikbay')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Elena.Zharkynbaeva'),
+       (SELECT id FROM users WHERE username = 'Irina.Vlasova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Arman.Nurpeisov'),
+       (SELECT id FROM users WHERE username = 'Asel.Tleubergenova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Oksana.Mikhaylova'),
+       (SELECT id FROM users WHERE username = 'Azamat.Yeszhanov')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Bekzat.Tursynov'),
+       (SELECT id FROM users WHERE username = 'Olga.Kuzmina')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Elena.Zharkynbaeva'),
+       (SELECT id FROM users WHERE username = 'Aliya.Kairbekova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Arman.Nurpeisov'),
+       (SELECT id FROM users WHERE username = 'Sergey.Shapovalov')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Oksana.Mikhaylova'),
+       (SELECT id FROM users WHERE username = 'Danagul.Altynbekova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Bekzat.Tursynov'),
+       (SELECT id FROM users WHERE username = 'Ruslan.Zhaksylykov')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Elena.Zharkynbaeva'),
+       (SELECT id FROM users WHERE username = 'Aigerim.Seilkhanova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Arman.Nurpeisov'),
+       (SELECT id FROM users WHERE username = 'Yerlan.Myrzagaliyev')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Oksana.Mikhaylova'),
+       (SELECT id FROM users WHERE username = 'Lyudmila.Goncharova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Bekzat.Tursynov'),
+       (SELECT id FROM users WHERE username = 'Alina.Iskakova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Bekzat.Tursynov'),
+       (SELECT id FROM users WHERE username = 'Marat.Nurgaliyev')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Elena.Zharkynbaeva'),
+       (SELECT id FROM users WHERE username = 'Natalia.Petrova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Arman.Nurpeisov'),
+       (SELECT id FROM users WHERE username = 'Bagdat.Serikbay')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Bekzat.Tursynov'),
+       (SELECT id FROM users WHERE username = 'Irina.Vlasova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Oksana.Mikhaylova'),
+       (SELECT id FROM users WHERE username = 'Asel.Tleubergenova')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Elena.Zharkynbaeva'),
+       (SELECT id FROM users WHERE username = 'Azamat.Yeszhanov')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Arman.Nurpeisov'),
+       (SELECT id FROM users WHERE username = 'Olga.Kuzmina')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trainers_trainees (trainer_id, trainee_id)
+SELECT (SELECT id FROM users WHERE username = 'Bekzat.Tursynov'),
+       (SELECT id FROM users WHERE username = 'Aliya.Kairbekova')
+ON CONFLICT DO NOTHING;

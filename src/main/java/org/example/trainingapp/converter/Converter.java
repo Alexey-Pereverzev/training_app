@@ -4,30 +4,31 @@ import org.apache.commons.lang3.EnumUtils;
 import org.example.trainingapp.dao.TraineeDao;
 import org.example.trainingapp.dao.TrainerDao;
 import org.example.trainingapp.dao.TrainingTypeDao;
-import org.example.trainingapp.dto.TraineeRequestDto;
 import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TraineeShortDto;
-import org.example.trainingapp.dto.TrainerDto;
 import org.example.trainingapp.dto.TrainerRegisterDto;
 import org.example.trainingapp.dto.TrainerResponseDto;
 import org.example.trainingapp.dto.TrainerShortDto;
-import org.example.trainingapp.dto.TrainingDto;
+import org.example.trainingapp.dto.TrainingRequestDto;
+import org.example.trainingapp.dto.TrainingResponseDto;
+import org.example.trainingapp.dto.TrainingTypeDto;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.entity.TrainingTypeEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 
 @Component
 public class Converter {
-    private static final Logger log = Logger.getLogger(Converter.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(Converter.class.getName());
     private final TrainingTypeDao trainingTypeDao;
     private final TrainerDao trainerDao;
     private final TraineeDao traineeDao;
@@ -40,18 +41,6 @@ public class Converter {
     }
 
 
-    public Trainee dtoToEntity(TraineeRequestDto traineeRequestDto) {
-        return Trainee.builder()
-                .firstName(traineeRequestDto.getFirstName())
-                .lastName(traineeRequestDto.getLastName())
-                .active(traineeRequestDto.getActive())
-                .address(traineeRequestDto.getAddress())
-                .dateOfBirth(traineeRequestDto.getDateOfBirth())
-                .username(traineeRequestDto.getUsername())
-                .build();
-    }
-
-
     public Trainee dtoToEntity(TraineeRegisterDto traineeRegisterDto) {
         return Trainee.builder()
                 .firstName(traineeRegisterDto.getFirstName())
@@ -61,20 +50,32 @@ public class Converter {
                 .build();
     }
 
-
-    public TraineeRequestDto entityToDto(Trainee trainee) {
-        return TraineeRequestDto.builder()
-                .firstName(trainee.getFirstName())
-                .lastName(trainee.getLastName())
-                .active(trainee.isActive())
-                .address(trainee.getAddress())
-                .dateOfBirth(trainee.getDateOfBirth())
-                .username(trainee.getUsername())
+    public Trainer dtoToEntity(TrainerRegisterDto dto) {
+        TrainingType type = resolveAndValidateTrainingType(dto.getSpecializationName());
+        return Trainer.builder()
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .specialization(type)
                 .build();
     }
 
-    public TraineeResponseDto entityToDtoWithoutUsername(Trainee trainee, List<TrainerDto> trainers) {
-        List<TrainerShortDto> trainerDtos = trainers.stream().map(this::dtoToShortDto).toList();
+    public TrainerResponseDto entityToDtoWithoutUsername(Trainer trainer, List<TraineeShortDto> trainees) {
+        return TrainerResponseDto.builder()
+                .firstName(trainer.getFirstName())
+                .lastName(trainer.getLastName())
+                .active(trainer.isActive())
+                .specializationName(trainer.getSpecialization().getName())
+                .trainees(trainees)
+                .build();
+    }
+
+    public TrainerResponseDto entityToResponseDto(Trainer trainer, List<TraineeShortDto> trainees) {
+        TrainerResponseDto trainerResponseDto = entityToDtoWithoutUsername(trainer, trainees);
+        trainerResponseDto.setUsername(trainer.getUsername());
+        return trainerResponseDto;
+    }
+
+    public TraineeResponseDto entityToDtoWithoutUsername(Trainee trainee, List<TrainerShortDto> trainerDtos) {
         return TraineeResponseDto.builder()
                 .firstName(trainee.getFirstName())
                 .lastName(trainee.getLastName())
@@ -85,96 +86,10 @@ public class Converter {
                 .build();
     }
 
-    public TraineeResponseDto entityToDto(Trainee trainee, List<TrainerDto> trainers) {
+    public TraineeResponseDto entityToResponseDto(Trainee trainee, List<TrainerShortDto> trainers) {
         TraineeResponseDto traineeResponseDto = entityToDtoWithoutUsername(trainee, trainers);
         traineeResponseDto.setUsername(trainee.getUsername());
         return traineeResponseDto;
-    }
-
-
-
-    public Trainer dtoToEntity(TrainerDto trainerDto) {
-        String specialization = trainerDto.getSpecializationName();
-        TrainingType type = trainingTypeDao.findByName(specialization)
-                .orElseThrow(() -> {
-                    log.warning("TrainingType not found: " + specialization);
-                    return new RuntimeException("TrainingType not found: " + specialization);
-                });
-        //  checking type validity and catching the exception
-        if (!EnumUtils.isValidEnum(TrainingTypeEnum.class, specialization.toUpperCase())) {
-            log.severe("TrainingType '" + specialization + "' is not supported.");
-            throw new RuntimeException("TrainingType '" + specialization + "' is not supported.");
-        }
-        return Trainer.builder()
-                .firstName(trainerDto.getFirstName())
-                .lastName(trainerDto.getLastName())
-                .active(trainerDto.getActive())
-                .specialization(type)
-                .username(trainerDto.getUsername())
-                .build();
-    }
-
-
-    public Trainer dtoToEntity(TrainerRegisterDto trainerRegisterDto) {
-        String specialization = trainerRegisterDto.getSpecializationName();
-        TrainingType type = trainingTypeDao.findByName(specialization)
-                .orElseThrow(() -> {
-                    log.warning("TrainingType not found: " + specialization);
-                    return new RuntimeException("TrainingType not found: " + specialization);
-                });
-        //  checking type validity and catching the exception
-        if (!EnumUtils.isValidEnum(TrainingTypeEnum.class, specialization.toUpperCase())) {
-            log.severe("TrainingType '" + specialization + "' is not supported.");
-            throw new RuntimeException("TrainingType '" + specialization + "' is not supported.");
-        }
-        return Trainer.builder()
-                .firstName(trainerRegisterDto.getFirstName())
-                .lastName(trainerRegisterDto.getLastName())
-                .specialization(type)
-                .build();
-    }
-
-
-    public TrainerDto entityToDto(Trainer trainer) {
-        return TrainerDto.builder()
-                .id(trainer.getId())
-                .firstName(trainer.getFirstName())
-                .lastName(trainer.getLastName())
-                .active(trainer.isActive())
-                .specializationName(trainer.getSpecialization().getName())
-                .username(trainer.getUsername())
-                .build();
-    }
-
-    public TrainerResponseDto entityToResponseDto(Trainer trainer, List<TraineeShortDto> trainees) {
-        return TrainerResponseDto.builder()
-                .firstName(trainer.getFirstName())
-                .lastName(trainer.getLastName())
-                .active(trainer.isActive())
-                .specializationName(trainer.getSpecialization().getName())
-                .trainees(trainees)
-                .build();
-    }
-
-    public TraineeResponseDto entityToResponseDto(Trainee trainee, List<TrainerShortDto> trainers) {
-        return TraineeResponseDto.builder()
-                .firstName(trainee.getFirstName())
-                .lastName(trainee.getLastName())
-                .dateOfBirth(trainee.getDateOfBirth())
-                .address(trainee.getAddress())
-                .active(trainee.isActive())
-                .trainers(trainers)
-                .build();
-    }
-
-
-    private TrainerShortDto dtoToShortDto(TrainerDto trainerDto) {
-        return TrainerShortDto.builder()
-                .firstName(trainerDto.getFirstName())
-                .lastName(trainerDto.getLastName())
-                .specializationName(trainerDto.getSpecializationName())
-                .username(trainerDto.getUsername())
-                .build();
     }
 
     public TraineeShortDto entityToShortDto(Trainee trainee) {
@@ -194,54 +109,69 @@ public class Converter {
                 .build();
     }
 
-    public Training dtoToEntity(TrainingDto dto) {
-        TrainingType type = getTrainingTypeByName(dto.getTrainingType());
-        Long trainerId = dto.getTrainerId();
-        Long traineeId = dto.getTraineeId();
-        Trainer trainer = trainerDao.findById(trainerId).orElseThrow(() -> {
-            log.warning("Trainer not found: ID=" + trainerId);
-            return new RuntimeException("Trainer not found with ID: " + trainerId);
+    public Training dtoToEntity(TrainingRequestDto dto) {
+        String trainerName = dto.getTrainerName();
+        String traineeName = dto.getTraineeName();
+        Trainer trainer = trainerDao.findByUsername(trainerName).orElseThrow(() -> {
+            log.warn("Trainer not found: username={}", trainerName);
+            return new RuntimeException("Not found trainer with username: " + trainerName);
         });
-        Trainee trainee = traineeDao.findById(traineeId).orElseThrow(() -> {
-            log.warning("Trainee not found: ID=" + traineeId);
-            return new RuntimeException("Trainee not found with ID: " + traineeId);
+        TrainingType type = getTrainingTypeByName(trainer.getSpecialization().getName());
+        Trainee trainee = traineeDao.findByUsername(traineeName).orElseThrow(() -> {
+            log.warn("Trainee not found: username={}", traineeName);
+            return new RuntimeException("Not found trainee with username: " + traineeName);
         });
         return Training.builder()
-                .trainingName(dto.getTrainingName())
-                .trainingDate(dto.getTrainingDate())
-                .trainingDuration(dto.getTrainingDuration())
+                .trainingName(dto.getName())
+                .trainingDate(dto.getDate())
+                .trainingDuration(dto.getDuration())
                 .trainee(trainee)
                 .trainer(trainer)
                 .trainingType(type)
                 .build();
     }
 
-    public TrainingDto entityToDto(Training training) {
-        return TrainingDto.builder()
-                .id(training.getId())
-                .trainingName(training.getTrainingName())
-                .trainingType(training.getTrainingType() != null ? training.getTrainingType().getName() : null)
-                .trainingDate(training.getTrainingDate())
-                .trainingDuration(training.getTrainingDuration())
-                .traineeId(training.getTrainee() != null ? training.getTrainee().getId() : null)
-                .trainerId(training.getTrainer() != null ? training.getTrainer().getId() : null)
+    public TrainingResponseDto entityToDtoWithNullTrainer(Training training) {
+        return TrainingResponseDto.builder()
+                .name(training.getTrainingName())
+                .type(training.getTrainingType() != null ? training.getTrainingType().getName() : null)
+                .date(training.getTrainingDate())
+                .duration(training.getTrainingDuration())
+                .traineeName(training.getTrainee() != null ? training.getTrainee().getUsername() : null)
+                .build();
+    }
+
+    public TrainingResponseDto entityToDtoWithNullTrainee(Training training) {
+        return TrainingResponseDto.builder()
+                .name(training.getTrainingName())
+                .type(training.getTrainingType() != null ? training.getTrainingType().getName() : null)
+                .date(training.getTrainingDate())
+                .duration(training.getTrainingDuration())
+                .trainerName(training.getTrainer() != null ? training.getTrainer().getUsername() : null)
                 .build();
     }
 
     public TrainingType getTrainingTypeByName(String trainingTypeName) {
-        TrainingType trainingType = trainingTypeDao.findByName(trainingTypeName)
-                .orElseThrow(() -> {
-                    log.warning("TrainingType not found: " + trainingTypeName);
-                    return new RuntimeException("TrainingType not found: " + trainingTypeName);
-                });
-        // checking type is valid for enum
-        if (!EnumUtils.isValidEnum(TrainingTypeEnum.class, trainingTypeName.toUpperCase())) {
-            log.severe("TrainingType '" + trainingTypeName + "' is not supported.");
-            throw new RuntimeException("TrainingType '" + trainingTypeName + "' is not supported.");
-        }
-        return trainingType;
+        return resolveAndValidateTrainingType(trainingTypeName);
     }
 
+    public TrainingTypeDto entityToDto(TrainingType trainingType) {
+        return TrainingTypeDto.builder()
+                .trainingTypeId(trainingType.getId())
+                .trainingTypeName(trainingType.getName())
+                .build();
+    }
 
+    private TrainingType resolveAndValidateTrainingType(String typeName) {
+        if (!EnumUtils.isValidEnum(TrainingTypeEnum.class, typeName.toUpperCase())) {
+            log.error("TrainingType '{}' is not supported.", typeName);
+            throw new RuntimeException("TrainingType '" + typeName + "' is not supported.");
+        }
+        return trainingTypeDao.findByName(typeName)
+                .orElseThrow(() -> {
+                    log.warn("TrainingType not found: {}", typeName);
+                    return new RuntimeException("TrainingType not found: " + typeName);
+                });
+    }
 
 }

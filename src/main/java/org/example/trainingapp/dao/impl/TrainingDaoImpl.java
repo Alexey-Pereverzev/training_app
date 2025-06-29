@@ -10,13 +10,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.Logger;
 
 
 @Repository
 public class TrainingDaoImpl implements TrainingDao {
-
-    private static final Logger logger = Logger.getLogger(TrainingDaoImpl.class.getName());
 
     @PersistenceUnit
     private EntityManagerFactory emf;
@@ -24,6 +21,7 @@ public class TrainingDaoImpl implements TrainingDao {
     private EntityManager entityManager() {
         return emf.createEntityManager();
     }
+
 
     @Override
     public void save(Training training) {
@@ -37,11 +35,11 @@ public class TrainingDaoImpl implements TrainingDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 
     @Override
     public void update(Training training) {
@@ -55,11 +53,11 @@ public class TrainingDaoImpl implements TrainingDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 
     @Override
     public Optional<Training> findById(Long id) {
@@ -68,12 +66,14 @@ public class TrainingDaoImpl implements TrainingDao {
         }
     }
 
+
     @Override
     public List<Training> findAll() {
         try (EntityManager em = entityManager()) {
             return em.createQuery("FROM Training", Training.class).getResultList();
         }
     }
+
 
     @Override
     public void deleteById(Long id) {
@@ -90,9 +90,10 @@ public class TrainingDaoImpl implements TrainingDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 }
+
