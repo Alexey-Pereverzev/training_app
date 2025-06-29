@@ -27,6 +27,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -74,7 +75,7 @@ class TrainerServiceImplTest {
                 .build();
 
         when(converter.dtoToEntity(dto)).thenReturn(entity);
-        when(userDao.countUsersByNameAndSurname("Dina", "Aliyeva")).thenReturn(0L);
+        when(userDao.findUsernamesByNameAndSurname("Dina", "Aliyeva")).thenReturn(Set.of());
         // when
         CredentialsDto creds = trainerService.createTrainer(dto);
 

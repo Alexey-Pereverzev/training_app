@@ -31,6 +31,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -75,7 +76,7 @@ class TraineeServiceImplTest {
                 .address("Almaty")
                 .build();
         when(converter.dtoToEntity(traineeDto)).thenReturn(traineeEntity);
-        when(userDao.countUsersByNameAndSurname("Ivan", "Petrov")).thenReturn(0L);
+        when(userDao.findUsernamesByNameAndSurname("Ivan", "Petrov")).thenReturn(Set.of());
         // when
         traineeService.createTrainee(traineeDto);
         // then

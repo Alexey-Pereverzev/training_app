@@ -1,5 +1,7 @@
 package org.example.trainingapp.dao;
 
+import java.util.Set;
+
 public interface UserDao {
-    long countUsersByNameAndSurname(String firstName, String lastName);
+    Set<String> findUsernamesByNameAndSurname(String firstName, String lastName);
 }

@@ -58,10 +58,10 @@ public class TraineeServiceImpl implements TraineeService {
     public CredentialsDto createTrainee(TraineeRegisterDto traineeRegisterDto) {
         ValidationUtils.validateTrainee(traineeRegisterDto);
         Trainee trainee = converter.dtoToEntity(traineeRegisterDto);
-        long count = userDao.countUsersByNameAndSurname(
-                trainee.getFirstName(), trainee.getLastName());
-        String generatedUsername = CredentialsUtil.generateUsername(
-                trainee.getFirstName(), trainee.getLastName(), count);
+        Set<String> existingUsernames = userDao.findUsernamesByNameAndSurname(trainee.getFirstName(),
+                trainee.getLastName());
+        String generatedUsername = CredentialsUtil.generateUsername(trainee.getFirstName(), trainee.getLastName(),
+                existingUsernames);
         String password = CredentialsUtil.generatePassword(10);
         trainee.setUsername(generatedUsername);
         trainee.setPassword(password);

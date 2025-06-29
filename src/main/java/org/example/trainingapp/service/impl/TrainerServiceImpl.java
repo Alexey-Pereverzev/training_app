@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 
 @Service
@@ -56,10 +57,10 @@ public class TrainerServiceImpl implements TrainerService {
     public CredentialsDto createTrainer(TrainerRegisterDto trainerRegisterDto) {
         ValidationUtils.validateTrainer(trainerRegisterDto);
         Trainer trainer = converter.dtoToEntity(trainerRegisterDto);
-        long count = userDao.countUsersByNameAndSurname(
-                trainer.getFirstName(), trainer.getLastName());
-        String generatedUsername = CredentialsUtil.generateUsername(
-                trainer.getFirstName(), trainer.getLastName(), count);
+        Set<String> existingUsernames = userDao.findUsernamesByNameAndSurname(trainer.getFirstName(),
+                trainer.getLastName());
+        String generatedUsername = CredentialsUtil.generateUsername(trainer.getFirstName(), trainer.getLastName(),
+                existingUsernames);
         String password = CredentialsUtil.generatePassword(10);
         trainer.setUsername(generatedUsername);
         trainer.setPassword(password);

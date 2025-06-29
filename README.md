@@ -138,9 +138,9 @@ ERROR: Critical error
 ### Design Patterns Used
 The project incorporates several established design patterns:
 
-- **DTO** – TraineeDto, TrainerDto, TrainingDto for service layer.
-- **DAO** – abstracts in-memory data operations via `TraineeDao`, `TrainerDao`, and `TrainingDao`.
-- **Service Layer** – encapsulates business logic through `TraineeService`, `TrainerService`, and `TrainingService`.
+- **DTO** – Request and Response DTOs for service layer.
+- **DAO** – abstracts in-memory data operations via `TraineeDao`, `TrainerDao`, etc.
+- **Service Layer** – encapsulates business logic through `TraineeService`, `TrainerService`, etc.
 - **Factory Pattern** – `YamlPropertySourceFactory` dynamically loads configuration from YAML files.
 - **Builder** – Dto.builder() via Lombok.
 - **Singleton** – Spring-managed beans.

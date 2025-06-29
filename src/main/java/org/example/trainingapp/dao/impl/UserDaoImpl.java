@@ -6,6 +6,9 @@ import jakarta.persistence.PersistenceUnit;
 import org.example.trainingapp.dao.UserDao;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashSet;
+import java.util.Set;
+
 
 @Repository
 public class UserDaoImpl implements UserDao {
@@ -19,13 +22,13 @@ public class UserDaoImpl implements UserDao {
 
 
     @Override
-    public long countUsersByNameAndSurname(String firstName, String lastName) {
+    public Set<String> findUsernamesByNameAndSurname(String firstName, String lastName) {
         try (EntityManager em = entityManager()) {
-            return em.createQuery(
-                    "SELECT COUNT(u) FROM User u WHERE u.firstName = :firstName AND u.lastName = :lastName", Long.class)
+            return new HashSet<>(em.createQuery("SELECT u.username FROM User u WHERE u.firstName = :firstName " +
+                            "AND u.lastName = :lastName", String.class)
                     .setParameter("firstName", firstName)
                     .setParameter("lastName", lastName)
-                    .getSingleResult();
+                    .getResultList());
         }
     }
 

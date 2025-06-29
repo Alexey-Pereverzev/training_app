@@ -1,6 +1,7 @@
 package org.example.trainingapp.util;
 
 import java.security.SecureRandom;
+import java.util.Set;
 
 
 public class CredentialsUtil {
@@ -16,8 +17,17 @@ public class CredentialsUtil {
         return sb.toString();
     }
 
-    public static String generateUsername(String firstName, String lastName, long existingCount) {
+    public static String generateUsername(String firstName, String lastName, Set<String> existingUsernames) {
         String base = firstName + "." + lastName;
-        return existingCount == 0 ? base : base + existingCount;
+        if (!existingUsernames.contains(base)) {
+            return base;
+        }
+        for (int i = 1; i < Integer.MAX_VALUE; i++) {           //  searching for unique username non-present in DB
+            String candidate = base + i;
+            if (!existingUsernames.contains(candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("Unable to generate unique username for " + base);
     }
 }
