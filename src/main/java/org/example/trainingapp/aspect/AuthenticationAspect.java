@@ -5,17 +5,25 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.example.trainingapp.dao.TraineeDao;
 import org.example.trainingapp.dao.TrainerDao;
-import org.example.trainingapp.dto.TraineeDto;
-import org.example.trainingapp.dto.TrainerDto;
+import org.example.trainingapp.dto.ActiveStatusDto;
+import org.example.trainingapp.dto.ChangePasswordDto;
+import org.example.trainingapp.dto.CredentialsDto;
+import org.example.trainingapp.dto.TraineeRequestDto;
+import org.example.trainingapp.dto.TrainerRequestDto;
+import org.example.trainingapp.dto.TrainingRequestDto;
+import org.example.trainingapp.dto.UpdateTrainerListDto;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
+import org.example.trainingapp.exception.ForbiddenAccessException;
 import org.example.trainingapp.service.AuthenticationService;
+import org.example.trainingapp.util.AuthUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.logging.Logger;
 
 
 @Aspect
@@ -25,7 +33,7 @@ public class AuthenticationAspect {
     private final AuthenticationService authenticationService;
     private final TraineeDao traineeDao;
     private final TrainerDao trainerDao;
-    private static final Logger logger = Logger.getLogger(AuthenticationAspect.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationAspect.class.getName());
 
     @Autowired
     public AuthenticationAspect(AuthenticationService authenticationService, TraineeDao traineeDao, TrainerDao trainerDao) {
@@ -39,61 +47,62 @@ public class AuthenticationAspect {
     public void authenticate(JoinPoint joinPoint, RequiresAuthentication requiresAuth) {
         Object[] args = joinPoint.getArgs();
 
-        if (args.length < 2 || !(args[0] instanceof String username) || !(args[1] instanceof String password)) {
-            logger.severe("Authentication failed: method did not receive username and password as first two args");
-            throw new SecurityException("Username and password must be the first two arguments.");
+        if (args.length < 1 || !(args[0] instanceof String authHeader)) {
+            logger.error("Authentication failed: method did not receive authorization header as first argument");
+            throw new SecurityException("Auth header must be the first argument.");
         }
 
-        Role authenticatedRole = authenticationService.validateCredentials(username, password);
-        logger.info("User '" + username + "' authenticated as role: " + authenticatedRole);
+        CredentialsDto credentialsDto = AuthUtil.decodeBasicAuth(authHeader);       //  decode and check format
+        Role authenticatedRole = authenticationService.authorize(credentialsDto);   //  validate
+        String username = credentialsDto.getUsername();
+        logger.info("User '{}' authenticated as role: {}", username, authenticatedRole);
 
         boolean isAuthorized = Arrays.stream(requiresAuth.allowedRoles()).anyMatch(role -> role == authenticatedRole);
 
-        if (!isAuthorized) {
+        if (!isAuthorized) {                                                        //  matching roles
             String message = "Access denied: role '" + authenticatedRole + "' is not allowed for this operation.";
-            logger.warning(message);
-            throw new SecurityException(message);
+            logger.warn(message);
+            throw new ForbiddenAccessException(message);
         }
 
-        if (requiresAuth.checkOwnership()) {
-            if (authenticatedRole  == Role.TRAINEE) {   //  checking if the entity which owns method is passed in args
-                                                        //  if related entity is different from authenticated user
+        if (requiresAuth.checkOwnership()) {            //  checking if the entity which owns method is passed in args:
+            if (authenticatedRole  == Role.TRAINEE) {   //  if related entity is different from authenticated user
                                                         //  then throw an exception
                 for (Object arg : args) {
-                    Long id = null;
-                    if (arg instanceof TraineeDto traineeDto) {          //  if passed as entity
-                        id = traineeDto.getId();
-                    } else if (arg instanceof Long) {                    //  if passed via id
-                        id = (Long) arg;
+                    Optional<Trainee> dbTrainee = Optional.empty();
+                    if (arg instanceof TraineeRequestDto traineeRequestDto) {               //  if passed in TraineeRequestDto
+                        dbTrainee = traineeDao.findByUsername(traineeRequestDto.getUsername());
+                    } else if (arg instanceof ActiveStatusDto activeStatusDto) {            //  if passed in ActiveStatusDto
+                        dbTrainee = traineeDao.findByUsername(activeStatusDto.getUsername());
+                    } else if (arg instanceof UpdateTrainerListDto updateTrainerListDto) {  //  if passed in UpdateTrainerListDto
+                        dbTrainee = traineeDao.findByUsername(updateTrainerListDto.getUsername());
+                    } else if (arg instanceof ChangePasswordDto changePasswordDto) {        //  if passed in ChangePasswordDto
+                        dbTrainee = traineeDao.findByUsername(changePasswordDto.getUsername());
                     }
-                    if (id != null) {
-                        Optional<Trainee> dbTrainee = traineeDao.findById(id);
-                        if (dbTrainee.isPresent() && !dbTrainee.get().getUsername().equals(username)) {
-                            String message = "Access denied for trainee: " + username + " (ID " + id
-                                    + " does not match).";
-                            logger.warning(message);
-                            throw new SecurityException(message);
-                        }
+                    if (dbTrainee.isPresent() && !dbTrainee.get().getUsername().equals(username)) {
+                        String message = "Access denied for trainee: " + username;
+                        logger.warn(message);
+                        throw new ForbiddenAccessException(message);
                     }
                 }
             }
 
-            if (authenticatedRole  == Role.TRAINER) {
+            if (authenticatedRole == Role.TRAINER) {
                 for (Object arg : args) {
-                    Long id = null;
-                    if (arg instanceof TrainerDto trainerDto) {          //  if passed as entity
-                        id = trainerDto.getId();
-                    } else if (arg instanceof Long) {                    //  if passed via id
-                        id = (Long) arg;
+                    Optional<Trainer> dbTrainer = Optional.empty();
+                    if (arg instanceof TrainerRequestDto trainerRequestDto) {               //  if passed in TrainerRequestDto
+                        dbTrainer = trainerDao.findByUsername(trainerRequestDto.getUsername());
+                    } else if (arg instanceof ActiveStatusDto activeStatusDto) {            //  if passed in ActiveStatusDto
+                        dbTrainer = trainerDao.findByUsername(activeStatusDto.getUsername());
+                    } else if (arg instanceof ChangePasswordDto changePasswordDto) {        //  if passed in ChangePasswordDto
+                        dbTrainer = trainerDao.findByUsername(changePasswordDto.getUsername());
+                    } else if (arg instanceof TrainingRequestDto trainingRequestDto) {      //  if passed in TrainingRequestDto
+                        dbTrainer = trainerDao.findByUsername(trainingRequestDto.getTrainerName());
                     }
-                    if (id != null) {
-                        Optional<Trainer> dbTrainer = trainerDao.findById(id);
-                        if (dbTrainer.isPresent() && !dbTrainer.get().getUsername().equals(username)) {
-                            String message = "Access denied for trainer: " + username + " (ID " + id
-                                    + " does not match).";
-                            logger.warning(message);
-                            throw new SecurityException(message);
-                        }
+                    if (dbTrainer.isPresent() && !dbTrainer.get().getUsername().equals(username)) {
+                        String message = "Access denied for trainer: " + username;
+                        logger.warn(message);
+                        throw new ForbiddenAccessException(message);
                     }
                 }
             }

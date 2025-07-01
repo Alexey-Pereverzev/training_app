@@ -12,13 +12,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.Logger;
 
 
 @Repository
 public class TrainerDaoImpl implements TrainerDao {
-
-    private static final Logger logger = Logger.getLogger(TrainerDaoImpl.class.getName());
 
     @PersistenceUnit
     private EntityManagerFactory emf;
@@ -26,6 +23,7 @@ public class TrainerDaoImpl implements TrainerDao {
     private EntityManager entityManager() {
         return emf.createEntityManager();
     }
+
 
     @Override
     public void save(Trainer trainer) {
@@ -39,11 +37,11 @@ public class TrainerDaoImpl implements TrainerDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 
     @Override
     public void update(Trainer trainer) {
@@ -57,11 +55,11 @@ public class TrainerDaoImpl implements TrainerDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 
     @Override
     public Optional<Trainer> findById(Long id) {
@@ -69,6 +67,7 @@ public class TrainerDaoImpl implements TrainerDao {
             return Optional.ofNullable(em.find(Trainer.class, id));
         }
     }
+
 
     @Override
     public Optional<Trainer> findByUsername(String username) {
@@ -79,11 +78,13 @@ public class TrainerDaoImpl implements TrainerDao {
         }
     }
 
+
     @Override
     public Optional<Trainer> findByUsernameWithTrainings(String username) {
         try (EntityManager em = entityManager()) {
             TypedQuery<Trainer> query = em.createQuery(
-                    "SELECT t FROM Trainer t LEFT JOIN FETCH t.trainings WHERE t.username = :username", Trainer.class);
+                    "SELECT DISTINCT t FROM Trainer t LEFT JOIN FETCH t.trainings tr LEFT JOIN FETCH tr.trainee " +
+                            "LEFT JOIN FETCH tr.trainingType WHERE t.username = :username", Trainer.class);
             query.setParameter("username", username);
             try {
                 return Optional.of(query.getSingleResult());
@@ -93,12 +94,25 @@ public class TrainerDaoImpl implements TrainerDao {
         }
     }
 
+
+    @Override
+    public Optional<Trainer> findByUsernameWithTrainees(String username) {
+        try (EntityManager em = entityManager()) {
+            TypedQuery<Trainer> query = em.createQuery(
+                    "SELECT t FROM Trainer t LEFT JOIN FETCH t.trainees WHERE t.username = :username", Trainer.class);
+            query.setParameter("username", username);
+            return query.getResultList().stream().findFirst();
+        }
+    }
+
+
     @Override
     public List<Trainer> findAll() {
         try (EntityManager em = entityManager()) {
             return em.createQuery("FROM Trainer", Trainer.class).getResultList();
         }
     }
+
 
     @Override
     public void deleteById(Long id) {
@@ -115,9 +129,9 @@ public class TrainerDaoImpl implements TrainerDao {
                 if (tx.isActive()) {
                     tx.rollback();
                 }
-                logger.severe("Transaction failed: " + e.getMessage());
                 throw e;
             }
         }
     }
+
 }

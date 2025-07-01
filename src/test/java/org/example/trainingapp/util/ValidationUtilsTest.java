@@ -1,241 +1,345 @@
 package org.example.trainingapp.util;
 
-import org.example.trainingapp.dto.TraineeDto;
-import org.example.trainingapp.dto.TrainerDto;
-import org.example.trainingapp.dto.TrainingDto;
+import org.example.trainingapp.dto.ActiveStatusDto;
+import org.example.trainingapp.dto.ChangePasswordDto;
+import org.example.trainingapp.dto.CredentialsDto;
+import org.example.trainingapp.dto.TraineeRegisterDto;
+import org.example.trainingapp.dto.TraineeRequestDto;
+import org.example.trainingapp.dto.TrainerRegisterDto;
+import org.example.trainingapp.dto.TrainerRequestDto;
+import org.example.trainingapp.dto.TrainingRequestDto;
+import org.example.trainingapp.dto.UpdateTrainerListDto;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
+import java.util.List;
+
 
 class ValidationUtilsTest {
 
-    // tests for validateTrainee()
-
     @Test
-    void whenValidData_validateTrainee_shouldPass() {
+    void whenValidateTraineeRegisterDto_valid_ok() {
         // given
-        TraineeDto trainee = TraineeDto.builder()
+        var dto = TraineeRegisterDto.builder()
                 .firstName("Ivan")
                 .lastName("Petrov")
-                .dateOfBirth(LocalDate.of(1990, 1, 1))
+                .dateOfBirth(LocalDate.of(1995, 1, 1))
                 .address("Almaty")
                 .build();
-        // when + then
-        ValidationUtils.validateTrainee(trainee); // should not throw exception
+        // then
+        ValidationUtils.validateTrainee(dto);   // do not throw
     }
 
+
     @Test
-    void whenFirstNameIsNullOrBlank_validateTrainee_shouldThrow() {
+    void whenValidateTraineeRegisterDto_noFirstName_throw() {
         // given
-        TraineeDto trainee1 = TraineeDto.builder()
-                .firstName(null)
+        var dto = TraineeRegisterDto.builder()
                 .lastName("Petrov")
-                .dateOfBirth(LocalDate.of(1990, 1, 1))
-                .address("Almaty")
-                .build();
-        TraineeDto trainee2 = TraineeDto.builder()
-                .firstName("  ")
-                .lastName("Petrov")
-                .dateOfBirth(LocalDate.of(1990, 1, 1))
-                .address("Almaty")
                 .build();
         // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTrainee(trainee1))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("First name is required.");
-        assertThatThrownBy(() -> ValidationUtils.validateTrainee(trainee2))
+        assertThatThrownBy(() -> ValidationUtils.validateTrainee(dto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("First name is required.");
     }
 
+
     @Test
-    void whenLastNameIsNullOrBlank_validateTrainee_shouldThrow() {
+    void whenValidateTraineeRequestDto_valid_ok() {
         // given
-        TraineeDto trainee = TraineeDto.builder()
+        var dto = TraineeRequestDto.builder()
+                .username("Ivan.Petrov")
                 .firstName("Ivan")
-                .lastName(" ")
-                .dateOfBirth(LocalDate.of(1990, 1, 1))
+                .lastName("Petrov")
+                .active(true)
                 .address("Almaty")
+                .dateOfBirth(LocalDate.of(1995, 1, 1))
                 .build();
-        // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTrainee(trainee))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Last name is required.");
+        // then
+        ValidationUtils.validateTrainee(dto);
     }
 
 
-    // tests for validateTrainer()
+    @Test
+    void whenValidateTraineeRequestDto_noActive_throw() {
+        // given
+        var dto = TraineeRequestDto.builder()
+                .username("Ivan.Petrov")
+                .firstName("Ivan")
+                .lastName("Petrov")
+                .build();
+        // when + then
+        assertThatThrownBy(() -> ValidationUtils.validateTrainee(dto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Active status is required.");
+    }
 
     @Test
-    void whenValidData_validateTrainer_shouldPass() {
+    void whenValidateTraineeRequestDto_usernameDoesNotMatchFirstNameLastName_shouldThrowException() {
         // given
-        TrainerDto trainer = TrainerDto.builder()
+        TraineeRequestDto dto = TraineeRequestDto.builder()
+                .firstName("Ivan")
+                .lastName("Petrov")
+                .username("Wrong.Username")
+                .active(true)
+                .build();
+        // when + then
+        assertThatThrownBy(() -> ValidationUtils.validateTrainee(dto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Username must start with 'Ivan.Petrov'");
+    }
+
+    @Test
+    void whenValidateTraineeRequestDto_usernameStartsWithFirstNameLastName_ok() {
+        // given
+        TraineeRequestDto dto = TraineeRequestDto.builder()
+                .firstName("Ivan")
+                .lastName("Petrov")
+                .username("Ivan.Petrov123")
+                .active(true)
+                .build();
+        // then
+        ValidationUtils.validateTrainee(dto);  // do not throw
+    }
+
+
+    @Test
+    void whenValidateTrainerRegisterDto_valid_ok() {
+        // given
+        var dto = TrainerRegisterDto.builder()
                 .firstName("Dina")
                 .lastName("Aliyeva")
                 .specializationName("Yoga")
                 .build();
-        // when + then
-        ValidationUtils.validateTrainer(trainer);
+        // then
+        ValidationUtils.validateTrainer(dto);   // do not throw
     }
 
-    @Test
-    void whenFirstNameIsNullOrBlank_validateTrainer_shouldThrow() {
-        // given
-        TrainerDto trainer = TrainerDto.builder()
-                .firstName(" ")
-                .lastName("Aliyeva")
-                .specializationName("Yoga")
-                .build();
-        // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTrainer(trainer))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("First name is required.");
-    }
 
     @Test
-    void whenLastNameIsNullOrBlank_validateTrainer_shouldThrow() {
+    void whenValidateTrainerRegisterDto_noSpecialization_throw() {
         // given
-        TrainerDto trainer = TrainerDto.builder()
-                .firstName("Dina")
-                .lastName("")
-                .specializationName("Yoga")
-                .build();
-        // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTrainer(trainer))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Last name is required.");
-    }
-
-    @Test
-    void whenSpecializationIsNullOrBlank_validateTrainer_shouldThrow() {
-        // given
-        TrainerDto trainer = TrainerDto.builder()
+        var dto = TrainerRegisterDto.builder()
                 .firstName("Dina")
                 .lastName("Aliyeva")
-                .specializationName(" ")
                 .build();
         // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTrainer(trainer))
+        assertThatThrownBy(() -> ValidationUtils.validateTrainer(dto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Specialization is required.");
     }
 
 
-    // tests for validateTraining()
-
     @Test
-    void whenValidData_validateTraining_shouldPass() {
+    void whenValidateTrainerRequestDto_valid_ok() {
         // given
-        TrainingDto training = TrainingDto.builder()
-                .trainingName("Yoga Session")
-                .trainingDuration(60)
-                .trainingDate(LocalDate.now())
-                .trainingType("Yoga")
-                .traineeId(1L)
-                .trainerId(2L)
+        var dto = TrainerRequestDto.builder()
+                .username("Dina.Aliyeva")
+                .firstName("Dina")
+                .lastName("Aliyeva")
+                .specializationName("Yoga")
+                .active(true)
                 .build();
-        // when + then
-        ValidationUtils.validateTraining(training);
+        // then
+        ValidationUtils.validateTrainer(dto);    // do not throw
     }
 
+
     @Test
-    void whenTrainingNameIsNullOrBlank_validateTraining_shouldThrow() {
+    void whenValidateTrainerRequestDto_noUsername_throw() {
         // given
-        TrainingDto training = TrainingDto.builder()
-                .trainingName("")
-                .trainingDuration(60)
-                .trainingDate(LocalDate.now())
-                .trainingType("Yoga")
-                .traineeId(1L)
-                .trainerId(2L)
+        var dto = TrainerRequestDto.builder()
+                .firstName("Dina")
+                .lastName("Aliyeva")
+                .specializationName("Yoga")
+                .active(true)
                 .build();
         // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTraining(training))
+        assertThatThrownBy(() -> ValidationUtils.validateTrainer(dto))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Training name is required.");
+                .hasMessage("Username is required.");
+    }
+
+
+    @Test
+    void whenValidateTrainingRequestDto_valid_ok() {
+        // given
+        var dto = TrainingRequestDto.builder()
+                .name("Power Yoga")
+                .duration(60)
+                .date(LocalDate.now())
+                .traineeName("Anna.Ivanova")
+                .trainerName("Elena.Sokolova")
+                .build();
+        // then
+        ValidationUtils.validateTraining(dto);    // do not throw
     }
 
     @Test
-    void whenTrainingDurationIsInvalid_validateTraining_shouldThrow() {
+    void whenValidateTrainerRequestDto_usernameDoesNotMatchFirstNameLastName_shouldThrowException() {
         // given
-        TrainingDto training = TrainingDto.builder()
-                .trainingName("Yoga Session")
-                .trainingDuration(0)
-                .trainingDate(LocalDate.now())
-                .trainingType("Yoga")
-                .traineeId(1L)
-                .trainerId(2L)
+        TrainerRequestDto dto = TrainerRequestDto.builder()
+                .firstName("Ivan")
+                .lastName("Petrov")
+                .username("Wrong.Username")
+                .specializationName("Yoga")
+                .active(true)
                 .build();
         // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTraining(training))
+        assertThatThrownBy(() -> ValidationUtils.validateTrainer(dto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Username must start with 'Ivan.Petrov'");
+    }
+
+    @Test
+    void whenValidateTrainerRequestDto_usernameStartsWithFirstNameLastName_ok() {
+        // given
+        TrainerRequestDto dto = TrainerRequestDto.builder()
+                .firstName("Ivan")
+                .lastName("Petrov")
+                .username("Ivan.Petrov123")
+                .specializationName("Yoga")
+                .active(true)
+                .build();
+        // then
+        ValidationUtils.validateTrainer(dto);  // do not throw
+    }
+
+
+    @Test
+    void whenValidateTrainingRequestDto_durationZero_throw() {
+        // given
+        var dto = TrainingRequestDto.builder()
+                .name("Power Yoga")
+                .duration(0)
+                .date(LocalDate.now())
+                .traineeName("Anna.Ivanova")
+                .trainerName("Elena.Sokolova")
+                .build();
+        // when + then
+        assertThatThrownBy(() -> ValidationUtils.validateTraining(dto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Training duration must be positive.");
     }
 
-    @Test
-    void whenTrainingDateIsNull_validateTraining_shouldThrow() {
-        // given
-        TrainingDto training = TrainingDto.builder()
-                .trainingName("Yoga Session")
-                .trainingDuration(60)
-                .trainingType("Yoga")
-                .traineeId(1L)
-                .trainerId(2L)
-                .build();
-        // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTraining(training))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Training date is required.");
-    }
 
     @Test
-    void whenTrainingTypeIsNullOrBlank_validateTraining_shouldThrow() {
+    void whenValidateCredentials_valid_ok() {
         // given
-        TrainingDto training = TrainingDto.builder()
-                .trainingName("Yoga Session")
-                .trainingDuration(60)
-                .trainingDate(LocalDate.now())
-                .traineeId(1L)
-                .trainerId(2L)
+        var dto = CredentialsDto.builder()
+                .username("user")
+                .password("pw")
                 .build();
-        // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTraining(training))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Training type is required.");
+        // then
+        ValidationUtils.validateCredentials(dto);  // do not throw
     }
 
-    @Test
-    void whenTraineeIdIsNull_validateTraining_shouldThrow() {
-        // given
-        TrainingDto training = TrainingDto.builder()
-                .trainingName("Yoga Session")
-                .trainingDuration(60)
-                .trainingDate(LocalDate.now())
-                .trainingType("Yoga")
-                .trainerId(2L)
-                .build();
-        // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTraining(training))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Trainee id is required.");
-    }
 
     @Test
-    void whenTrainerIdIsNull_validateTraining_shouldThrow() {
+    void whenValidateCredentials_noPassword_throw() {
         // given
-        TrainingDto training = TrainingDto.builder()
-                .trainingName("Yoga Session")
-                .trainingDuration(60)
-                .trainingDate(LocalDate.now())
-                .trainingType("Yoga")
-                .traineeId(1L)
+        var dto = CredentialsDto.builder()
+                .username("user")
                 .build();
         // when + then
-        assertThatThrownBy(() -> ValidationUtils.validateTraining(training))
+        assertThatThrownBy(() -> ValidationUtils.validateCredentials(dto))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Trainer id is required.");
+                .hasMessage("Password is required.");
     }
+
+
+    @Test
+    void whenValidateChangePasswordDto_valid_ok() {
+        // given
+        var dto = ChangePasswordDto.builder()
+                .username("user")
+                .oldPassword("old")
+                .newPassword("new")
+                .build();
+        // then
+        ValidationUtils.validateCredentials(dto);
+    }
+
+
+    @Test
+    void whenValidateChangePasswordDto_missingNew_throw() {
+        // given
+        var dto = ChangePasswordDto.builder()
+                .username("user")
+                .oldPassword("old")
+                .build();
+        // when + then
+        assertThatThrownBy(() -> ValidationUtils.validateCredentials(dto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("New password is required.");
+    }
+
+
+    @Test
+    void whenValidateActiveStatus_valid_ok() {
+        // given
+        var dto = ActiveStatusDto.builder()
+                .username("user")
+                .active(true)
+                .build();
+        // then
+        ValidationUtils.validateActiveStatus(dto);
+    }
+
+
+    @Test
+    void whenValidateActiveStatus_nullActive_throw() {
+        // given
+        var dto = ActiveStatusDto.builder()
+                .username("user")
+                .build();
+        // when + then
+        assertThatThrownBy(() -> ValidationUtils.validateActiveStatus(dto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Active status is required.");
+    }
+
+
+    @Test
+    void whenValidateUpdateTrainerList_valid_ok() {
+        // given
+        var dto = new UpdateTrainerListDto(
+                "trainee.username",
+                List.of("Trainer.One", "Trainer.Two")
+        );
+        // then
+        ValidationUtils.validateUpdateTrainerList(dto);
+    }
+
+
+    @Test
+    void whenValidateUpdateTrainerList_emptyList_throw() {
+        // given
+        var dto = new UpdateTrainerListDto("trainee.username", List.of());
+        // when + then
+        assertThatThrownBy(() -> ValidationUtils.validateUpdateTrainerList(dto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("At least one trainer must be provided.");
+    }
+
+
+    @Test
+    void whenValidateUsername_blank_throw() {
+        // when + then
+        assertThatThrownBy(() -> ValidationUtils.validateUsername(" "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Username is required.");
+    }
+
+
+    @Test
+    void whenValidateUsername_ok() {
+        // then
+        ValidationUtils.validateUsername("Good.Username");
+    }
+
 }
+

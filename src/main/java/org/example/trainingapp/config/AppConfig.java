@@ -1,23 +1,34 @@
 package org.example.trainingapp.config;
 
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.flywaydb.core.Flyway;
-import org.hibernate.SessionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springdoc.core.configuration.SpringDocConfiguration;
+import org.springdoc.core.properties.SpringDocConfigProperties;
+import org.springdoc.core.properties.SwaggerUiConfigProperties;
+import org.springdoc.core.properties.SwaggerUiOAuthProperties;
+import org.springdoc.webmvc.core.configuration.MultipleOpenApiSupportConfiguration;
+import org.springdoc.webmvc.core.configuration.SpringDocWebMvcConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.orm.hibernate5.HibernateTransactionManager;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 import java.util.Properties;
-import java.util.logging.Logger;
 
 
 @Configuration
@@ -25,9 +36,17 @@ import java.util.logging.Logger;
 @EnableTransactionManagement
 @PropertySource(value = "classpath:application.yaml", factory = YamlPropertySourceFactory.class)
 @EnableAspectJAutoProxy
+@Import({
+        SpringDocConfiguration.class,
+        SpringDocWebMvcConfiguration.class,
+        SpringDocConfigProperties.class,
+        SwaggerUiConfigProperties.class,
+        SwaggerUiOAuthProperties.class,
+        MultipleOpenApiSupportConfiguration.class
+})
 public class AppConfig {
 
-    private static final Logger log = Logger.getLogger(AppConfig.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(AppConfig.class.getName());
 
     @Value("${database.url}")
     private String url;
@@ -48,7 +67,7 @@ public class AppConfig {
 
     @Bean
     public DataSource dataSource() {
-        log.info("Initializing DataSource with URL: " + url);
+        log.info("Initializing DataSource with URL: {}", url);
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(driverClassName);
         dataSource.setUrl(url);
@@ -79,12 +98,6 @@ public class AppConfig {
     }
 
     @Bean
-    public HibernateTransactionManager transactionManager(SessionFactory sessionFactory) {
-        log.info("Creating HibernateTransactionManager...");
-        return new HibernateTransactionManager(sessionFactory);
-    }
-
-    @Bean
     public Flyway flyway(DataSource dataSource) {
         log.info("Running Flyway migrations...");
         Flyway flyway = Flyway.configure()
@@ -94,5 +107,20 @@ public class AppConfig {
                 .load();
         flyway.migrate();
         return flyway;
+    }
+
+    @Bean
+    public OpenAPI openApi() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Training App API")
+                        .description("REST API documentation")
+                        .version("1.0"))
+                .components(new Components()
+                        .addSecuritySchemes("basicAuth",
+                                new SecurityScheme()
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("basic")))
+                .addSecurityItem(new SecurityRequirement().addList("basicAuth"));
     }
 }
