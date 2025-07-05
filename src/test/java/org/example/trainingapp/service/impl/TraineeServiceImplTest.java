@@ -18,13 +18,12 @@ import org.example.trainingapp.repository.TraineeRepository;
 import org.example.trainingapp.repository.TrainerRepository;
 import org.example.trainingapp.repository.UserRepository;
 import org.example.trainingapp.util.AuthContextUtil;
-import org.example.trainingapp.util.AuthUtil;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -157,12 +156,11 @@ class TraineeServiceImplTest {
         // given
         String blankUsername = "   ";
         when(authContextUtil.getUsername()).thenReturn(blankUsername);
+
         // when + then
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth(blankUsername, "pw")) {
-            assertThatThrownBy(() -> traineeService.deleteTrainee(blankUsername))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Username is required");
-        }
+        assertThatThrownBy(() -> traineeService.deleteTrainee(blankUsername))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Username is required");
     }
 
 
@@ -265,14 +263,14 @@ class TraineeServiceImplTest {
                 true, LocalDate.of(1995, 6, 6), "Pavlodar", Collections.emptyList(),
                 new ArrayList<>());
         when(authContextUtil.getUsername()).thenReturn(username);
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth(username, "pw")) {
-            when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
-            // when
-            List<TrainingResponseDto> result = traineeService.getTraineeTrainings(username, null, null,
-                    null, null);
-            // then
-            assertThat(result).isEmpty();
-        }
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
+
+        // when
+        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(username, null, null,
+                null, null);
+
+        // then
+        assertThat(result).isEmpty();
     }
 
 
