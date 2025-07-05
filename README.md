@@ -205,6 +205,6 @@ solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER 
 ## Author
 
 Aleksei Pereverzev  
-Developed as part of a Java Spring Core / Hibernate learning module.
+Developed as part of a Java Spring Boot learning module.
 
 
