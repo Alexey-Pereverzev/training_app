@@ -1,6 +1,6 @@
 # Training Management System
 
-This is a modular Java 21 application built using **pure Spring Core (without Spring Boot) and Hibernate**. It manages trainees, trainers, and training sessions in memory using Spring dependency injection, annotations, and in-memory storage.
+This is a modular Java 21 application built using **Spring Boot**. It manages trainees, trainers, and training sessions using Spring dependency injection, annotations, and PostgreSQL database.
 
 ## Features
 
@@ -9,7 +9,8 @@ This is a modular Java 21 application built using **pure Spring Core (without Sp
 - Initialize data using Flyway
 - Generate unique usernames and random passwords
 - Modular architecture following **SOLID**, **KISS**, and **DRY** principles
-- Main file demonstrating data initialization and different functions
+- REST controllers
+- Swagger UI plugged in
 - Structured logging at multiple levels (`INFO`, `WARNING`, `SEVERE`)
 - Unit tests with **JUnit 5** and **Mockito**
 
@@ -21,10 +22,10 @@ This is a modular Java 21 application built using **pure Spring Core (without Sp
 | Component         | Technology                |
 |-------------------|---------------------------|
 | Language          | Java 21                   |
-| Framework         | Spring Core 6             |
+| Framework         | Spring Boot 3.5           |
 | Dependency Tool   | Gradle                    |
 | Logging           | Slf4j                     |
-| JPA               | Hibernate                 |
+| JPA               | Spring Data JPA           |
 | Tests             | JUnit 5, Mockito          |
 | Configuration     | YAML (`application.yaml`) |
 | Storage           | PostgreSQL                |
@@ -43,18 +44,20 @@ src/
 │   │   ├── config/          # Spring config classes
 │   │   ├── controller/      # REST controllers
 │   │   ├── converter/       # Entity <-> DTO conversion
-│   │   ├── dao/             # DAO interfaces and implementations
 │   │   ├── dto/             # DTO for service layer
 │   │   ├── entity/          # Domain model: Trainee, Trainer, etc.
 │   │   ├── exception/       # Custom exceptions and Controller Advice
+│   │   ├── health/          # Custom health indicators
+│   │   ├── metrics/         # Custom Prometheus metrics
+│   │   ├── repository/      # Spring JPA repositories
 │   │   ├── service/         # Business logic layer
 │   │   └── util/            # Utilities 
 │   └── resources/
-│       ├── application.yml
+│       ├── application.yaml # and profile-specific yaml-files
 │       ├── logback.xml
 │       └── db.migration     # Migrational scripts for Flyway
 │           
-├── test/
+└── test/
     └── java/org.example.trainingapp/
         ├── service/         # Unit tests for service classes
         └── util/            # Unit tests for utility classes
@@ -71,25 +74,29 @@ git clone https://github.com/Alexey-Pereverzev/training_app.git
 cd training_app
 ```
 
-### 2. Build the project
+### 2. Run the application (default profile is 'local')
 
 ```bash
-./gradlew clean build
+./gradlew bootRun
 ```
 
-### 3. Copy trainingapp.war into tomcat /webapps directory
+### 3. Swagger UI is available at:
 
 ```bash
-cp build/libs/trainingapp.war /path/to/tomcat/webapps/
+http://localhost:8080/trainingapp/swagger-ui/index.html
 ```
 
-### 4. Run Tomcat
+### 4. Health checks exposed at:
 
 ```bash
-/path/to/tomcat/bin/startup.bat
+http://localhost:8080/trainingapp/actuator/health
 ```
 
-### 5. Use Postman to run requests
+### 5. Prometheus-compatible metrics are available at:
+
+```bash
+http://localhost:8080/trainingapp/actuator/prometheus
+```
 
 ---
 
@@ -107,6 +114,7 @@ Test coverage includes:
 - TrainingTypeServiceImpl
 - UserServiceImpl
 - AuthUtil
+- AuthContextUtil
 - CredentialsUtil
 - ValidationUtils
 
@@ -139,198 +147,55 @@ ERROR: Critical error
 The project incorporates several established design patterns:
 
 - **DTO** – Request and Response DTOs for service layer.
-- **DAO** – abstracts in-memory data operations via `TraineeDao`, `TrainerDao`, etc.
 - **Service Layer** – encapsulates business logic through `TraineeService`, `TrainerService`, etc.
-- **Factory Pattern** – `YamlPropertySourceFactory` dynamically loads configuration from YAML files.
 - **Builder** – Dto.builder() via Lombok.
 - **Singleton** – Spring-managed beans.
 - **Exception Handling (Controller Advice)** – Global error handling via ControllerAdvice
+- **Factory-like (Util)** - generation of username in CredentialsUtil
+- **Strategy (Validation)** - Validation in class ValidationUtils
+- **Decorator (Metrics)** - Timer metric
+- **Adapter** - DTO <-> Entity conversion
 
 ### Task implementation for module 4:
 
 **Based on the codebase created during the previous module, implement follow REST API (as a RestController):**
-1. Trainee Registration (POST method).
+1. Convert existing application to be Spring boot Application.
 ```
-solution: TraineeController.registerTrainee(); 
-```
-
-2. Trainer Registration (POST method).
-```
-solution: TrainerController.registerTrainer();
+solution: Done. Added necessary dependencies, deleted old config files and added necessary configs for Jackson parsing, Logging and Swagger. DAO layer substituted with the repository layer.
 ```
 
-3. Login (GET method).
+2. Enable actuator.
+   Implement a few custom health indicators 
+   Implement a few custom metrics using Prometheus 
 ```
-solution: UserController.login();
-```
-
-4. Change Login (PUT method).
-```
-solution: UserController.changePassword();
+solution: health indicatiors: /health package, Prometheus metrics: /metrics package
 ```
 
-5. Get Trainee Profile (GET method).
+3. Implement support for different environments (local, dev, stg, prod). Use Spring profiles.
 ```
-solution: TraineeController.getTrainee();
-```
-
-6. Update Trainee Profile (PUT method).
-```
-solution: TraineeController.updateTrainee();
-```
-
-7. Delete Trainee Profile (DELETE method).
-```
-solution: TraineeController.deleteTrainee();
-```
-
-8. Get Trainer Profile (GET method).
-```
-solution: TrainerController.getTrainer();
-```
-
-9. Update Trainer Profile (PUT method).
-```
-solution: TrainerController.updateTrainer();
-```
-
-10. Get not assigned on trainee active trainers. (GET method).
-```
-solution: TraineeController.getAvailableTrainers();
-```
-
-11. Update Trainee's Trainer List (PUT method).
-```
-solution: TraineeController.updateTrainerList();
-```
-
-12. Get Trainee Trainings List (GET method).
-```
-solution: TraineeController.getTraineeTrainings();
-```
-
-13. Get Trainer Trainings List (GET method).
-```
-solution: TrainerController.getTrainerTrainings();
-```
-
-14. Add Training (POST method).
-```
-solution: TrainingController.addTraining();
-```
-
-15. Activate/De-Activate Trainee (PATCH method).
-```
-solution: TraineeController.setActiveStatus() - with Stream API filters
-```
-
-16. Activate/De-Activate Trainer (PATCH method).
-```
-solution: TrainerController.setActiveStatus() - - with Stream API filters
-```
-
-17. Get Training types (GET method).
-```
-solution: TrainingTypeController.getTrainingTypes();
+solution: implemented profiles using yaml configuration:
+application-local.yaml (default)
+application-dev.yaml
+application-prod.yaml
+application-stg.yaml
+application-test.yaml
 ```
 
 
 **Notes:**
-1. During Create Trainer/Trainee profile username and password should be generated as described in previous module.
+1. Cover code with unit tests. Code should contain proper logging.
 ```
-solution: class CredentialsUtil
+solution: all services and utils are covered with unit tests. All services uses SLF4J logging.
 ```
 
-2. Not possible to register as a trainer and trainee both.
+2. Pay attention that each environment should have different db properties.
 ```
-solution: registering a trainee and a trainer are separate operations with unique username and password generated 
+solution: different db properties defined in corresponding .yaml files
 ```
 
 3. All functions except Create Trainer/Trainee profile should be executed only after Trainee/Trainer authentication (on this step should be checked username and password matching)
 ```
-solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER role and ownership of the method (true/false)
-```
-
-4. Implement required validation for each endpoint.
-```
-solution: class ValidationUtils
-```
-
-5. Users Table has parent-child (one to one) relation with Trainer and Trainee tables.
-```
-solution: used another approach with JOINED inheritance
-```
-
-6. Training functionality does not include delete/update possibility via REST.
-```
-solution: only creating and getting of Trainings are available via REST
-```
-
-7. Username cannot be changed.
-```
-solution: updateTrainee() / updateTrainer() functions does not allow to change username of the user
-```
-
-8. Trainees and Trainers have many to many relations.
-```
-solution: JoinTable trainers_trainees
-```
-
-9. Activate/De-activate Trainee/Trainer profile not idempotent action.
-```
-solution: changing isAcive status in DB using boolean parameter 
-```
-
-10. Delete Trainee profile is hard deleting action and bring the cascade deletion of relevant trainings.
-```
-solution: using cascade = CascadeType.ALL on trainings
-```
-
-11. Training duration have a number type.
-```
-solution: Integer trainingDuration field
-```
-
-12. Training Date, Trainee Date of Birth have Date type.
-```
-solution: LocalDate fields for dates
-```
-
-13. Is Active field in Trainee/Trainer profile has Boolean type.
-```
-solution: Boolean "active" field in User
-```
-
-14. Training Types table include constant list of values and could not be updated from the application.
-```
-solution: Enum TrainingTypeEnum for training type fields with validation during creation/updating of trainee/trainer 
-```
-
-15. Implement error handling for all endpoints.
-```
-solution: class GlobalExceptionHandler
-```
-
-16. Cover code with unit tests. 
-```
-solution: all services and utils are covered with unit tests.
-```
-
-17. Two levels of logging should be implemented:
-a. Transaction level (generate transactionId by which you can track all operations for this transaction the same transactionId can later be passed to downstream services)
-b. Specific rest call details (which endpoint was called, which request came and the service response - 200 or error and response message). 
-```
-solution: class TransactionLoggingAspect + class RestLoggingInterceptor
-```
-
-18. Implement error handling. 
-```
-solution: class GlobalExceptionHandler
-```
-
-19. Document methods in RestController file(s) using Swagger 2 annotations. 
-```
-solution: Swagger v3 annotations used
+solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER role and ownership of the method (true/false). Authentication header is intercepted from the RequestContextHolder in custom AuthContextUtil 
 ```
 
 ---

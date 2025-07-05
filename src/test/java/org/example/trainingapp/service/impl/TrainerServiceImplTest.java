@@ -1,9 +1,6 @@
 package org.example.trainingapp.service.impl;
 
 import org.example.trainingapp.converter.Converter;
-import org.example.trainingapp.dao.TrainerDao;
-import org.example.trainingapp.dao.TrainingTypeDao;
-import org.example.trainingapp.dao.UserDao;
 import org.example.trainingapp.dto.ActiveStatusDto;
 import org.example.trainingapp.dto.CredentialsDto;
 import org.example.trainingapp.dto.TrainerRegisterDto;
@@ -14,13 +11,16 @@ import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
-import org.example.trainingapp.util.AuthUtil;
+import org.example.trainingapp.metrics.RegistrationMetrics;
+import org.example.trainingapp.repository.TrainerRepository;
+import org.example.trainingapp.repository.TrainingTypeRepository;
+import org.example.trainingapp.repository.UserRepository;
+import org.example.trainingapp.util.AuthContextUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -43,16 +43,22 @@ import static org.mockito.Mockito.when;
 class TrainerServiceImplTest {
 
     @Mock
-    private TrainerDao trainerDao;
+    private TrainerRepository trainerRepository;
 
     @Mock
-    private TrainingTypeDao trainingTypeDao;
+    private TrainingTypeRepository trainingTypeRepository;
 
     @Mock
     private Converter converter;
 
     @Mock
-    private UserDao userDao;
+    private UserRepository userRepository;
+
+    @Mock
+    private AuthContextUtil authContextUtil;
+
+    @Mock
+    private RegistrationMetrics registrationMetrics;
 
     @InjectMocks
     private TrainerServiceImpl trainerService;
@@ -75,13 +81,13 @@ class TrainerServiceImplTest {
                 .build();
 
         when(converter.dtoToEntity(dto)).thenReturn(entity);
-        when(userDao.findUsernamesByNameAndSurname("Dina", "Aliyeva")).thenReturn(Set.of());
+        when(userRepository.findUsernamesByFirstNameAndLastName("Dina", "Aliyeva")).thenReturn(Set.of());
         // when
         CredentialsDto creds = trainerService.createTrainer(dto);
 
         // then
         ArgumentCaptor<Trainer> captor = ArgumentCaptor.forClass(Trainer.class);
-        verify(trainerDao).save(captor.capture());
+        verify(trainerRepository).save(captor.capture());
         Trainer saved = captor.getValue();
 
         assertThat(saved.getUsername()).isEqualTo("Dina.Aliyeva");
@@ -96,12 +102,13 @@ class TrainerServiceImplTest {
     @Test
     void whenUpdatingTrainer_shouldUpdateEntityAndCallDao() {
         // given
+        String username = "Nina.Petrova";
         TrainingType boxing = new TrainingType("Boxing");
         Trainer existing = Trainer.builder()
                 .id(10L)
                 .firstName("Nina")
                 .lastName("Petrova")
-                .username("Nina.Petrova")
+                .username(username)
                 .password("pw123")
                 .specialization(boxing)
                 .active(false)
@@ -109,24 +116,21 @@ class TrainerServiceImplTest {
                 .build();
 
         TrainerRequestDto req = TrainerRequestDto.builder()
-                .username("Nina.Petrova")
+                .username(username)
                 .firstName("Nina")
                 .lastName("Petrova")
                 .specializationName("Boxing")
                 .active(true)
                 .build();
 
-        when(trainerDao.findByUsernameWithTrainees("Nina.Petrova")).thenReturn(Optional.of(existing));
-        when(trainingTypeDao.findByName("Boxing")).thenReturn(Optional.of(boxing));
-        String authHeader = TestUtils.createAuthHeader("Nina.Petrova", "pw123");
+        when(trainerRepository.findByUsernameWithTrainees(username)).thenReturn(Optional.of(existing));
+        when(trainingTypeRepository.findByName("Boxing")).thenReturn(Optional.of(boxing));
 
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth("Nina.Petrova", "pw123")) {
-            // when
-            trainerService.updateTrainer(authHeader, req);
-        }
+        // when
+        trainerService.updateTrainer(req);
 
         // then
-        verify(trainerDao).update(existing);
+        verify(trainerRepository).save(existing);
         assertThat(existing.isActive()).isTrue();
         assertThat(existing.getSpecialization().getName()).isEqualTo("Boxing");
     }
@@ -135,77 +139,71 @@ class TrainerServiceImplTest {
     @Test
     void whenUpdatingTrainer_withUnsupportedSpecialization_shouldThrow() {
         // given
+        String username = "Nina.Petrova";
         Trainer existing = Trainer.builder()
-                .username("Nina.Petrova")
+                .username(username)
                 .password("pw")
                 .build();
-        when(trainerDao.findByUsernameWithTrainees("Nina.Petrova")).thenReturn(Optional.of(existing));
+        when(trainerRepository.findByUsernameWithTrainees(username)).thenReturn(Optional.of(existing));
         TrainerRequestDto req = TrainerRequestDto.builder()
-                .username("Nina.Petrova")
+                .username(username)
                 .firstName("Nina")
                 .lastName("Petrova")
                 .specializationName("JiuJutsu")         //  absent in Enum
                 .active(true)
                 .build();
-        String authHeader = TestUtils.createAuthHeader("Nina.Petrova", "pw");
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth("Nina.Petrova", "pw123")) {
-            // when + then
-            assertThatThrownBy(() -> trainerService.updateTrainer(authHeader, req))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("TrainingType not found: JiuJutsu");
-        }
-        verify(trainerDao, never()).update(any());
+        // when + then
+        assertThatThrownBy(() -> trainerService.updateTrainer(req))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("TrainingType not found: JiuJutsu");
+        verify(trainerRepository, never()).save(any());
     }
 
 
     @Test
     void whenGettingTrainerByUsername_shouldReturnDto() {
         // given
+        String username = "Oksana.Mikhaylova";
         Trainer trainer = Trainer.builder()
-                .username("Oksana.Mikhaylova")
+                .username(username)
                 .trainees(new ArrayList<>())
                 .build();
         TrainerResponseDto dto = TrainerResponseDto.builder()
-                .username("Oksana.Mikhaylova").firstName("Oksana").build();
+                .username(username).firstName("Oksana").build();
 
-        when(trainerDao.findByUsernameWithTrainees("Oksana.Mikhaylova")).thenReturn(Optional.of(trainer));
-        when(trainerDao.findByUsername("Oksana.Mikhaylova")).thenReturn(Optional.of(trainer));
+        when(trainerRepository.findByUsernameWithTrainees(username)).thenReturn(Optional.of(trainer));
+        when(trainerRepository.findByUsername(username)).thenReturn(Optional.of(trainer));
         when(converter.entityToDtoWithoutUsername(eq(trainer), anyList())).thenReturn(dto);
+        when(authContextUtil.getUsername()).thenReturn(username);
 
-        String header = TestUtils.createAuthHeader("Oksana.Mikhaylova", "pw");
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth("Oksana.Mikhaylova", "pw")) {
-            // when
-            TrainerResponseDto res = trainerService.getTrainerByUsername(header, "Oksana.Mikhaylova");
-            // then
-            assertThat(res.getFirstName()).isEqualTo("Oksana");
-        }
+        // when
+        TrainerResponseDto res = trainerService.getTrainerByUsername(username);
+        // then
+        assertThat(res.getFirstName()).isEqualTo("Oksana");
     }
 
 
     @Test
     void whenSettingTrainerActiveStatus_shouldUpdate() {
         // given
+        String username = "Serik.Nurpeisov";
         Trainer trainer = Trainer.builder()
-                .id(15L).username("Serik.Nurpeisov").active(true).build();
-        when(trainerDao.findByUsername("Serik.Nurpeisov")).thenReturn(Optional.of(trainer));
-
-        ActiveStatusDto dto = new ActiveStatusDto("Serik.Nurpeisov", false);
-        String header = TestUtils.createAuthHeader("Serik.Nurpeisov", "pw");
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth("Serik.Nurpeisov", "pw")) {
-            // when
-            trainerService.setTrainerActiveStatus(header, dto);
-        }
+                .id(15L).username(username).active(true).build();
+        when(trainerRepository.findByUsername(username)).thenReturn(Optional.of(trainer));
+        ActiveStatusDto dto = new ActiveStatusDto(username, false);
+        // when
+        trainerService.setTrainerActiveStatus(dto);
         // then
         assertThat(trainer.isActive()).isFalse();
-        verify(trainerDao).update(trainer);
+        verify(trainerRepository).save(trainer);
     }
 
 
     @Test
     void whenGettingTrainerTrainings_withDateRange_shouldFilter() {
         // given
-        Trainer trainer = Trainer.builder()
-                .username("Serik.Nurpeisov").trainings(new ArrayList<>()).build();
+        String username = "Serik.Nurpeisov";
+        Trainer trainer = Trainer.builder().username(username).trainings(new ArrayList<>()).build();
 
         Training t1 = new Training();                       // 10-е
         t1.setTrainingDate(LocalDate.of(2024, 5, 10));
@@ -216,28 +214,26 @@ class TrainerServiceImplTest {
 
         trainer.getTrainings().addAll(List.of(t1, t2));
 
-        when(trainerDao.findByUsernameWithTrainings("Serik.Nurpeisov")).thenReturn(Optional.of(trainer));
+        when(trainerRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainer));
         when(converter.entityToDtoWithNullTrainer(t2)).thenReturn(
                 TrainingResponseDto.builder().date(t2.getTrainingDate()).build()
         );
 
-        String header = TestUtils.createAuthHeader("Serik.Nurpeisov", "pw");
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth("Serik.Nurpeisov", "pw")) {
-            // when
-            var res = trainerService.getTrainerTrainings(header, "Serik.Nurpeisov",
-                    LocalDate.of(2024, 5, 15), LocalDate.of(2024, 5, 25),
-                    null);
-            // then
-            assertThat(res).hasSize(1);
-            assertThat(res.getFirst().getDate()).isEqualTo(t2.getTrainingDate());
-        }
+        when(authContextUtil.getUsername()).thenReturn(username);
+        // when
+        var res = trainerService.getTrainerTrainings( username, LocalDate.of(2024, 5, 15),
+                LocalDate.of(2024, 5, 25),null);
+        // then
+        assertThat(res).hasSize(1);
+        assertThat(res.getFirst().getDate()).isEqualTo(t2.getTrainingDate());
     }
 
 
     @Test
     void whenGettingTrainerTrainings_withTraineeName_shouldFilter() {
         // given
-        Trainer trainer = Trainer.builder().username("Serik.Nurpeisov").trainings(new ArrayList<>()).build();
+        String username = "Serik.Nurpeisov";
+        Trainer trainer = Trainer.builder().username(username).trainings(new ArrayList<>()).build();
 
         Trainee tr1 = new Trainee(); tr1.setUsername("Dina.Aliyeva");
         Trainee tr2 = new Trainee(); tr2.setUsername("Aigerim.Seilkhanova");
@@ -247,34 +243,30 @@ class TrainerServiceImplTest {
 
         trainer.getTrainings().addAll(List.of(tx1, tx2));
 
-        when(trainerDao.findByUsernameWithTrainings("Serik.Nurpeisov")).thenReturn(Optional.of(trainer));
+        when(trainerRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainer));
         when(converter.entityToDtoWithNullTrainer(tx2)).thenReturn(
                 TrainingResponseDto.builder().traineeName("Aigerim.Seilkhanova").build()
         );
 
-        String header = TestUtils.createAuthHeader("Serik.Nurpeisov", "pw");
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth("Serik.Nurpeisov", "pw")) {
-            // when
-            var res = trainerService.getTrainerTrainings(header, "Serik.Nurpeisov", null, null,
-                    "Aigerim.Seilkhanova");
-            // then
-            assertThat(res).hasSize(1);
-            assertThat(res.getFirst().getTraineeName()).isEqualTo("Aigerim.Seilkhanova");
-        }
+        when(authContextUtil.getUsername()).thenReturn(username);
+        // when
+        var res = trainerService.getTrainerTrainings(username, null, null, "Aigerim.Seilkhanova");
+        // then
+        assertThat(res).hasSize(1);
+        assertThat(res.getFirst().getTraineeName()).isEqualTo("Aigerim.Seilkhanova");
     }
 
 
     @Test
     void whenChangingTrainerPassword_shouldPersistNewPassword() {
         // given
-        Trainer trainer = Trainer.builder()
-                .id(99L).username("Azamat.Yeszhanov").password("oldPw").build();
-        when(trainerDao.findByUsername("Azamat.Yeszhanov")).thenReturn(Optional.of(trainer));
+        Trainer trainer = Trainer.builder().id(99L).username("Azamat.Yeszhanov").password("oldPw").build();
+        when(trainerRepository.findByUsername("Azamat.Yeszhanov")).thenReturn(Optional.of(trainer));
         // when
         trainerService.setNewPassword("Azamat.Yeszhanov", "oldPw", "newPw");
         // then
         assertThat(trainer.getPassword()).isEqualTo("newPw");
-        verify(trainerDao).update(trainer);
+        verify(trainerRepository).save(trainer);
     }
 
 }

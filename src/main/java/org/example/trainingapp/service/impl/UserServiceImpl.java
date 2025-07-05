@@ -8,11 +8,15 @@ import org.example.trainingapp.service.TraineeService;
 import org.example.trainingapp.service.TrainerService;
 import org.example.trainingapp.service.UserService;
 import org.example.trainingapp.util.ValidationUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
 public class UserServiceImpl implements UserService {
+    private static final Logger log = LoggerFactory.getLogger(TrainingServiceImpl.class.getName());
     private final TraineeService traineeService;
     private final TrainerService trainerService;
     private final AuthenticationService authenticationService;
@@ -25,8 +29,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     @RequiresAuthentication(allowedRoles = {Role.TRAINER, Role.TRAINEE})
-    public void changePassword(String authHeader, ChangePasswordDto changePasswordDto) {
+    public void changePassword(ChangePasswordDto changePasswordDto) {
         ValidationUtils.validateCredentials(changePasswordDto);
         Role role = authenticationService.authorize(changePasswordDto.getUsername(), changePasswordDto.getOldPassword());
         if (role==Role.TRAINER) {
@@ -36,5 +41,6 @@ public class UserServiceImpl implements UserService {
             traineeService.setNewPassword(changePasswordDto.getUsername(), changePasswordDto.getOldPassword(),
                     changePasswordDto.getNewPassword());
         }
+        log.info("Password changed for user: {}", changePasswordDto.getUsername());
     }
 }

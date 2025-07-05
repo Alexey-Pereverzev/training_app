@@ -1,12 +1,9 @@
 package org.example.trainingapp.service.impl;
 
-import org.apache.commons.lang3.EnumUtils;
+import jakarta.persistence.EntityNotFoundException;
 import org.example.trainingapp.aspect.RequiresAuthentication;
 import org.example.trainingapp.aspect.Role;
 import org.example.trainingapp.converter.Converter;
-import org.example.trainingapp.dao.TrainerDao;
-import org.example.trainingapp.dao.TrainingTypeDao;
-import org.example.trainingapp.dao.UserDao;
 import org.example.trainingapp.dto.ActiveStatusDto;
 import org.example.trainingapp.dto.CredentialsDto;
 import org.example.trainingapp.dto.TraineeShortDto;
@@ -18,16 +15,20 @@ import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
-import org.example.trainingapp.entity.TrainingTypeEnum;
 import org.example.trainingapp.exception.ForbiddenAccessException;
+import org.example.trainingapp.metrics.RegistrationMetrics;
+import org.example.trainingapp.repository.TrainerRepository;
+import org.example.trainingapp.repository.TrainingTypeRepository;
+import org.example.trainingapp.repository.UserRepository;
 import org.example.trainingapp.service.TrainerService;
-import org.example.trainingapp.util.AuthUtil;
+import org.example.trainingapp.util.AuthContextUtil;
 import org.example.trainingapp.util.CredentialsUtil;
 import org.example.trainingapp.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -38,26 +39,38 @@ import java.util.Set;
 public class TrainerServiceImpl implements TrainerService {
 
     private static final Logger log = LoggerFactory.getLogger(TrainerServiceImpl.class.getName());
-    private final TrainerDao trainerDao;
+    private final TrainerRepository trainerRepository;
     private final Converter converter;
-    private final TrainingTypeDao trainingTypeDao;
-    private final UserDao userDao;
+    private final TrainingTypeRepository trainingTypeRepository;
+    private final UserRepository userRepository;
+    private final AuthContextUtil authContextUtil;
+    private final RegistrationMetrics registrationMetrics;
 
     @Autowired
-    public TrainerServiceImpl(TrainerDao trainerDao, Converter converter,
-                              TrainingTypeDao trainingTypeDao, UserDao userDao) {
-        this.trainerDao = trainerDao;
+    public TrainerServiceImpl(TrainerRepository trainerRepository, Converter converter,
+                              TrainingTypeRepository trainingTypeRepository, UserRepository userRepository,
+                              AuthContextUtil authContextUtil, RegistrationMetrics registrationMetrics) {
+        this.trainerRepository = trainerRepository;
         this.converter = converter;
-        this.trainingTypeDao = trainingTypeDao;
-        this.userDao = userDao;
+        this.trainingTypeRepository = trainingTypeRepository;
+        this.userRepository = userRepository;
+        this.authContextUtil = authContextUtil;
+        this.registrationMetrics = registrationMetrics;
     }
 
 
     @Override
+    @Transactional
     public CredentialsDto createTrainer(TrainerRegisterDto trainerRegisterDto) {
         ValidationUtils.validateTrainer(trainerRegisterDto);
-        Trainer trainer = converter.dtoToEntity(trainerRegisterDto);
-        Set<String> existingUsernames = userDao.findUsernamesByNameAndSurname(trainer.getFirstName(),
+        Trainer trainer;
+        try {
+            trainer = converter.dtoToEntity(trainerRegisterDto);
+        } catch (IllegalArgumentException | EntityNotFoundException e) {
+            log.warn("Failed to convert TrainerRegisterDto to Trainer: {}", e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+        Set<String> existingUsernames = userRepository.findUsernamesByFirstNameAndLastName(trainer.getFirstName(),
                 trainer.getLastName());
         String generatedUsername = CredentialsUtil.generateUsername(trainer.getFirstName(), trainer.getLastName(),
                 existingUsernames);
@@ -65,8 +78,9 @@ public class TrainerServiceImpl implements TrainerService {
         trainer.setUsername(generatedUsername);
         trainer.setPassword(password);
         trainer.setActive(true);
-        trainerDao.save(trainer);
+        trainerRepository.save(trainer);
         log.info("Trainer created: {}", trainer.getUsername());
+        registrationMetrics.incrementTrainer();
         return CredentialsDto.builder()
                 .username(trainer.getUsername())
                 .password(trainer.getPassword())
@@ -75,29 +89,30 @@ public class TrainerServiceImpl implements TrainerService {
 
 
     @Override
+    @Transactional
     @RequiresAuthentication(allowedRoles = {Role.TRAINER})
-    public TrainerResponseDto updateTrainer(String authHeader, TrainerRequestDto trainerRequestDto) {
+    public TrainerResponseDto updateTrainer(TrainerRequestDto trainerRequestDto) {
         ValidationUtils.validateTrainer(trainerRequestDto);
         String username = trainerRequestDto.getUsername();
-        Trainer existing = trainerDao.findByUsernameWithTrainees(username)
+        Trainer existing = trainerRepository.findByUsernameWithTrainees(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer '{}' not found during updaing ", username);
                     return new RuntimeException("Not found trainer with username: " + username);
                 });
         String specialization = trainerRequestDto.getSpecializationName();
-        TrainingType type = trainingTypeDao.findByName(specialization)
+        TrainingType type = trainingTypeRepository.findByName(specialization)
                 .orElseThrow(() -> {
                     log.warn("TrainingType not found: {}", specialization);
                     return new RuntimeException("TrainingType not found: " + specialization);
                 });
         //  checking type validity and catching the exception
-        if (!EnumUtils.isValidEnum(TrainingTypeEnum.class, specialization.toUpperCase())) {
+        if (!ValidationUtils.isValidTrainingTypeEnum(specialization.toUpperCase())) {
             log.error("Unsupported TrainingType: {}", specialization);
             throw new RuntimeException("TrainingType '" + specialization + "' is not supported.");
         }
         existing.setSpecialization(type);
         existing.setActive(trainerRequestDto.getActive());
-        trainerDao.update(existing);
+        trainerRepository.save(existing);
         log.info("Trainer updated: {}", existing.getId());
         List<TraineeShortDto> trainees = getTraineesForTrainer(username);
         return converter.entityToResponseDto(existing, trainees);
@@ -106,9 +121,8 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINER})
-    public TrainerResponseDto getTrainerByUsername(String authHeader, String username) {
-        CredentialsDto credentialsDto = AuthUtil.decodeBasicAuth(authHeader);
-        if (!username.equals(credentialsDto.getUsername())) {
+    public TrainerResponseDto getTrainerByUsername(String username) {
+        if (!username.equals(authContextUtil.getUsername())) {
             throw new ForbiddenAccessException("User is not the owner of entity");
         } else {
             ValidationUtils.validateUsername(username);
@@ -121,13 +135,14 @@ public class TrainerServiceImpl implements TrainerService {
 
 
     @Override
+    @Transactional
     @RequiresAuthentication(allowedRoles = {Role.TRAINER})
-    public Boolean setTrainerActiveStatus(String authHeader, ActiveStatusDto activeStatusDto) {
+    public Boolean setTrainerActiveStatus(ActiveStatusDto activeStatusDto) {
         ValidationUtils.validateActiveStatus(activeStatusDto);
         Trainer trainer = getTrainer(activeStatusDto.getUsername());
         Boolean active = activeStatusDto.getActive();
         trainer.setActive(active);
-        trainerDao.update(trainer);
+        trainerRepository.save(trainer);
         log.info("Trainer active status changed: {} to {}", trainer.getId(), active);
         return active;
     }
@@ -135,14 +150,13 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @RequiresAuthentication(allowedRoles = {Role.TRAINER})
-    public List<TrainingResponseDto> getTrainerTrainings(String authHeader, String username, LocalDate fromDate,
+    public List<TrainingResponseDto> getTrainerTrainings(String username, LocalDate fromDate,
                                                          LocalDate toDate, String traineeName) {
-        CredentialsDto credentialsDto = AuthUtil.decodeBasicAuth(authHeader);
-        if (!username.equals(credentialsDto.getUsername())) {
+        if (!username.equals(authContextUtil.getUsername())) {
             throw new ForbiddenAccessException("User is not the owner of entity");
         } else {
             ValidationUtils.validateUsername(username);
-            Trainer trainer = trainerDao.findByUsernameWithTrainings(username)
+            Trainer trainer = trainerRepository.findByUsernameWithTrainings(username)
                     .orElseThrow(() -> {
                         log.warn("Trainer '{}' not found during getting trainings", username);
                         return new RuntimeException("Not found trainer with username: " + username);
@@ -164,16 +178,17 @@ public class TrainerServiceImpl implements TrainerService {
 
 
     @Override
+    @Transactional
     public void setNewPassword(String username, String oldPassword, String newPassword) {
         Trainer trainer = getTrainer(username);
         trainer.setPassword(newPassword);
-        trainerDao.update(trainer);
+        trainerRepository.save(trainer);
         log.info("Password updated for trainer {}", username);
     }
 
 
     private List<TraineeShortDto> getTraineesForTrainer(String username) {
-        Trainer trainer = trainerDao.findByUsernameWithTrainees(username)
+        Trainer trainer = trainerRepository.findByUsernameWithTrainees(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer '{}' not found during getting trainees", username);
                     return new RuntimeException("Not found trainer with username: " + username);
@@ -185,7 +200,7 @@ public class TrainerServiceImpl implements TrainerService {
 
 
     private Trainer getTrainer(String username) {
-        return trainerDao.findByUsername(username).orElseThrow(() -> {
+        return trainerRepository.findByUsername(username).orElseThrow(() -> {
             log.warn("Trainer not found: {}", username);
             return new RuntimeException("Trainer not found: " + username);
         });

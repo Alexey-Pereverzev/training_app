@@ -1,9 +1,9 @@
 package org.example.trainingapp.service.impl;
 
 import org.example.trainingapp.converter.Converter;
-import org.example.trainingapp.dao.TrainingTypeDao;
 import org.example.trainingapp.dto.TrainingTypeDto;
 import org.example.trainingapp.entity.TrainingType;
+import org.example.trainingapp.repository.TrainingTypeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 class TrainingTypeServiceImplTest {
 
     @Mock
-    private TrainingTypeDao trainingTypeDao;
+    private TrainingTypeRepository trainingTypeRepository;
 
     @Mock
     private Converter converter;
@@ -42,12 +42,12 @@ class TrainingTypeServiceImplTest {
         TrainingTypeDto dto1 = new TrainingTypeDto("Yoga", 1L);
         TrainingTypeDto dto2 = new TrainingTypeDto("Boxing", 2L);
 
-        when(trainingTypeDao.findAll()).thenReturn(List.of(type1, type2));
+        when(trainingTypeRepository.findAll()).thenReturn(List.of(type1, type2));
         when(converter.entityToDto(type1)).thenReturn(dto1);
         when(converter.entityToDto(type2)).thenReturn(dto2);
 
         // when
-        List<TrainingTypeDto> result = trainingTypeService.getTrainingTypes("anyAuthHeader");
+        List<TrainingTypeDto> result = trainingTypeService.getTrainingTypes();
 
         // then
         assertThat(result).hasSize(2);

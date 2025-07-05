@@ -40,7 +40,7 @@ class UserServiceImplTest {
         when(authenticationService.authorize("Elena.Sokolova", "oldPass"))
                 .thenReturn(Role.TRAINER);
         // when
-        userService.changePassword("someAuthHeader", dto);
+        userService.changePassword(dto);
         // then
         verify(trainerService).setNewPassword("Elena.Sokolova", "oldPass", "newPass");
         verifyNoInteractions(traineeService);
@@ -54,7 +54,7 @@ class UserServiceImplTest {
         when(authenticationService.authorize("Anna.Ivanova", "123"))
                 .thenReturn(Role.TRAINEE);
         // when
-        userService.changePassword("someAuthHeader", dto);
+        userService.changePassword(dto);
         // then
         verify(traineeService).setNewPassword("Anna.Ivanova", "123", "456");
         verifyNoInteractions(trainerService);
@@ -66,7 +66,7 @@ class UserServiceImplTest {
         // given
         ChangePasswordDto dto = new ChangePasswordDto("", "", "");
         // when + then
-        assertThatThrownBy(() -> userService.changePassword("auth", dto))
+        assertThatThrownBy(() -> userService.changePassword(dto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Username");
         verifyNoInteractions(trainerService, traineeService, authenticationService);

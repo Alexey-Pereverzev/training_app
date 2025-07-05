@@ -1,9 +1,6 @@
 package org.example.trainingapp.converter;
 
-import org.apache.commons.lang3.EnumUtils;
-import org.example.trainingapp.dao.TraineeDao;
-import org.example.trainingapp.dao.TrainerDao;
-import org.example.trainingapp.dao.TrainingTypeDao;
+import jakarta.persistence.EntityNotFoundException;
 import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TraineeShortDto;
@@ -17,9 +14,12 @@ import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
-import org.example.trainingapp.entity.TrainingTypeEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import org.example.trainingapp.repository.TraineeRepository;
+import org.example.trainingapp.repository.TrainerRepository;
+import org.example.trainingapp.repository.TrainingTypeRepository;
+
+import org.example.trainingapp.util.ValidationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -28,16 +28,16 @@ import java.util.List;
 
 @Component
 public class Converter {
-    private static final Logger log = LoggerFactory.getLogger(Converter.class.getName());
-    private final TrainingTypeDao trainingTypeDao;
-    private final TrainerDao trainerDao;
-    private final TraineeDao traineeDao;
+    private final TrainingTypeRepository trainingTypeRepository;
+    private final TrainerRepository trainerRepository;
+    private final TraineeRepository traineeRepository;
 
     @Autowired
-    public Converter(TrainingTypeDao trainingTypeDao, TrainerDao trainerDao, TraineeDao traineeDao) {
-        this.trainingTypeDao = trainingTypeDao;
-        this.trainerDao = trainerDao;
-        this.traineeDao = traineeDao;
+    public Converter(TrainingTypeRepository trainingTypeRepository, TrainerRepository trainerRepository, 
+                     TraineeRepository traineeRepository) {
+        this.trainingTypeRepository = trainingTypeRepository;
+        this.trainerRepository = trainerRepository;
+        this.traineeRepository = traineeRepository;
     }
 
 
@@ -112,15 +112,11 @@ public class Converter {
     public Training dtoToEntity(TrainingRequestDto dto) {
         String trainerName = dto.getTrainerName();
         String traineeName = dto.getTraineeName();
-        Trainer trainer = trainerDao.findByUsername(trainerName).orElseThrow(() -> {
-            log.warn("Trainer not found: username={}", trainerName);
-            return new RuntimeException("Not found trainer with username: " + trainerName);
-        });
+        Trainer trainer = trainerRepository.findByUsername(trainerName)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerName));
         TrainingType type = getTrainingTypeByName(trainer.getSpecialization().getName());
-        Trainee trainee = traineeDao.findByUsername(traineeName).orElseThrow(() -> {
-            log.warn("Trainee not found: username={}", traineeName);
-            return new RuntimeException("Not found trainee with username: " + traineeName);
-        });
+        Trainee trainee = traineeRepository.findByUsername(traineeName)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + traineeName));
         return Training.builder()
                 .trainingName(dto.getName())
                 .trainingDate(dto.getDate())
@@ -163,15 +159,10 @@ public class Converter {
     }
 
     private TrainingType resolveAndValidateTrainingType(String typeName) {
-        if (!EnumUtils.isValidEnum(TrainingTypeEnum.class, typeName.toUpperCase())) {
-            log.error("TrainingType '{}' is not supported.", typeName);
-            throw new RuntimeException("TrainingType '" + typeName + "' is not supported.");
+        if (!ValidationUtils.isValidTrainingTypeEnum(typeName)) {
+            throw new IllegalArgumentException("TrainingType '" + typeName + "' is not supported.");
         }
-        return trainingTypeDao.findByName(typeName)
-                .orElseThrow(() -> {
-                    log.warn("TrainingType not found: {}", typeName);
-                    return new RuntimeException("TrainingType not found: " + typeName);
-                });
+        return trainingTypeRepository.findByName(typeName)
+                .orElseThrow(() -> new EntityNotFoundException("TrainingType not found: " + typeName));
     }
-
 }
