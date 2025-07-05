@@ -6,11 +6,11 @@ This is a modular Java 21 application built using **Spring Boot**. It manages tr
 
 - Manage profiles for **Trainees** and **Trainers**
 - Manage **Training sessions** between them
-- Initialize data using Flyway
+- Initialize data using **Flyway**
 - Generate unique usernames and random passwords
 - Modular architecture following **SOLID**, **KISS**, and **DRY** principles
-- REST controllers
-- Swagger UI plugged in
+- **REST** controllers
+- **Swagger UI** plugged in
 - Structured logging at multiple levels (`INFO`, `WARNING`, `SEVERE`)
 - Unit tests with **JUnit 5** and **Mockito**
 
@@ -156,12 +156,13 @@ The project incorporates several established design patterns:
 - **Decorator (Metrics)** - Timer metric
 - **Adapter** - DTO <-> Entity conversion
 
-### Task implementation for module 4:
+### Task implementation for module 5:
 
 **Based on the codebase created during the previous module, implement follow REST API (as a RestController):**
 1. Convert existing application to be Spring boot Application.
 ```
-solution: Done. Added necessary dependencies, deleted old config files and added necessary configs for Jackson parsing, Logging and Swagger. DAO layer substituted with the repository layer.
+solution: Done. Added necessary dependencies, deleted old config files and added necessary configs for Jackson parsing, 
+Logging and Swagger. DAO layer substituted with the repository layer.
 ```
 
 2. Enable actuator.
@@ -195,7 +196,8 @@ solution: different db properties defined in corresponding .yaml files
 
 3. All functions except Create Trainer/Trainee profile should be executed only after Trainee/Trainer authentication (on this step should be checked username and password matching)
 ```
-solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER role and ownership of the method (true/false). Authentication header is intercepted from the RequestContextHolder in custom AuthContextUtil 
+solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER role and ownership of the method 
+(true/false). Authentication header is intercepted from the RequestContextHolder in custom AuthContextUtil 
 ```
 
 ---
