@@ -77,7 +77,7 @@ public class TraineeServiceImpl implements TraineeService {
         trainee.setActive(true);
         traineeRepository.save(trainee);
         log.info("Trainee created: {}", trainee.getUsername());
-        registrationMetrics.incrementTrainee();
+        registrationMetrics.incrementTrainee();         //  add to Prometheus metric
         return CredentialsDto.builder()
                 .username(trainee.getUsername())
                 .password(trainee.getPassword())

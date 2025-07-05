@@ -73,7 +73,7 @@ public class TrainingServiceImpl implements TrainingService {
         if (!trainee.getTrainers().contains(trainer)) {
             trainee.getTrainers().add(trainer);
         }
-        trainingExecutionMetrics.record(() -> {
+        trainingExecutionMetrics.record(() -> {     //  write Prometheus metric
             trainingRepository.save(training);
         });
         trainerRepository.save(trainer);             // updates both trainer and trainee

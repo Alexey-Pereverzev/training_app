@@ -80,7 +80,7 @@ public class TrainerServiceImpl implements TrainerService {
         trainer.setActive(true);
         trainerRepository.save(trainer);
         log.info("Trainer created: {}", trainer.getUsername());
-        registrationMetrics.incrementTrainer();
+        registrationMetrics.incrementTrainer();         //  add to Prometheus metric
         return CredentialsDto.builder()
                 .username(trainer.getUsername())
                 .password(trainer.getPassword())
