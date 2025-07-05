@@ -158,7 +158,7 @@ The project incorporates several established design patterns:
 
 ### Task implementation for module 5:
 
-**Based on the codebase created during the previous module, implement follow REST API (as a RestController):**
+**Based on the codebase created during the previous module, implement follow functionality:**
 1. Convert existing application to be Spring boot Application.
 ```
 solution: Done. Added necessary dependencies, deleted old config files and added necessary configs for Jackson parsing, 
