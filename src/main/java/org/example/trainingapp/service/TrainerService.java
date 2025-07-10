@@ -13,10 +13,9 @@ import java.util.List;
 
 public interface TrainerService {
     CredentialsDto createTrainer(TrainerRegisterDto trainerRegisterDto);
-    TrainerResponseDto updateTrainer(String authHeader, TrainerRequestDto trainerRequestDto);
-    TrainerResponseDto getTrainerByUsername(String authHeader, String username);
-    Boolean setTrainerActiveStatus(String authHeader, ActiveStatusDto activeStatusDto);
-    List<TrainingResponseDto> getTrainerTrainings(String authHeader, String username, LocalDate fromDate, LocalDate toDate,
-                                                  String traineeName);
+    TrainerResponseDto updateTrainer(TrainerRequestDto trainerRequestDto);
+    TrainerResponseDto getTrainerByUsername(String username);
+    Boolean setTrainerActiveStatus(ActiveStatusDto activeStatusDto);
+    List<TrainingResponseDto> getTrainerTrainings(String username, LocalDate fromDate, LocalDate toDate, String traineeName);
     void setNewPassword(String username, String oldPassword, String newPassword);
 }

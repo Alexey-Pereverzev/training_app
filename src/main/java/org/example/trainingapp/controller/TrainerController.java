@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,7 +53,7 @@ public class TrainerController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @PostMapping("/register")
-    public ResponseEntity<?> registerTrainer(
+    public ResponseEntity<CredentialsDto> registerTrainer(
             @Parameter(description = "Trainer registration data")
             @RequestBody TrainerRegisterDto trainerRegisterDto) {
         CredentialsDto dto = trainerService.createTrainer(trainerRegisterDto);
@@ -71,12 +70,10 @@ public class TrainerController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    public ResponseEntity<?> getTrainer(
+    public ResponseEntity<TrainerResponseDto> getTrainer(
             @Parameter(description = "Trainer username", required = true)
-            @PathVariable("username") String username,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader) {
-        TrainerResponseDto dto = trainerService.getTrainerByUsername(authHeader, username);
+            @PathVariable("username") String username) {
+        TrainerResponseDto dto = trainerService.getTrainerByUsername(username);
         return ResponseEntity.ok(dto);
     }
 
@@ -90,12 +87,10 @@ public class TrainerController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    public ResponseEntity<?> updateTrainer(
+    public ResponseEntity<TrainerResponseDto> updateTrainer(
             @Parameter(description = "Trainer profile update data")
-            @RequestBody TrainerRequestDto trainerRequestDto,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader) {
-        TrainerResponseDto dto = trainerService.updateTrainer(authHeader, trainerRequestDto);
+            @RequestBody TrainerRequestDto trainerRequestDto) {
+        TrainerResponseDto dto = trainerService.updateTrainer(trainerRequestDto);
         return ResponseEntity.ok(dto);
     }
 
@@ -110,7 +105,7 @@ public class TrainerController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    public ResponseEntity<?> getTrainerTrainings(
+    public ResponseEntity<List<TrainingResponseDto>> getTrainerTrainings(
             @Parameter(description = "Trainer username", required = true)
             @PathVariable("username") String username,
             @Parameter(description = "Start date filter (optional)")
@@ -118,10 +113,8 @@ public class TrainerController {
             @Parameter(description = "End date filter (optional)")
             @RequestParam(name = "toDate", required = false) LocalDate toDate,
             @Parameter(description = "Trainee username filter (optional)")
-            @RequestParam(name = "traineeName", required = false) String traineeName,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader(name = "Authorization") String authHeader) {
-        List<TrainingResponseDto> dtos = trainerService.getTrainerTrainings(authHeader, username, fromDate, toDate,
+            @RequestParam(name = "traineeName", required = false) String traineeName) {
+        List<TrainingResponseDto> dtos = trainerService.getTrainerTrainings(username, fromDate, toDate,
                 traineeName);
         return ResponseEntity.ok(dtos);
     }
@@ -130,17 +123,17 @@ public class TrainerController {
     @PatchMapping("/active-status")
     @Operation(summary = "Change trainer active status", description = "Sets the trainer's active status")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Trainer status changed"),
+            @ApiResponse(
+                    responseCode = "200", description = "Trainer status changed",
+                    content = @Content(mediaType = "text/plain")),
             @ApiResponse(responseCode = "400", description = "Validation error"),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    public ResponseEntity<?> setActiveStatus(
+    public ResponseEntity<String> setActiveStatus(
             @Parameter(description = "Trainer active status update")
-            @RequestBody ActiveStatusDto activeStatusDto,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader) {
-        Boolean status = trainerService.setTrainerActiveStatus(authHeader, activeStatusDto);
+            @RequestBody ActiveStatusDto activeStatusDto) {
+        Boolean status = trainerService.setTrainerActiveStatus(activeStatusDto);
         return ResponseEntity.ok("Trainer active status changed to " + status);
     }
 

@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -58,7 +57,7 @@ public class TraineeController {
             @ApiResponse(responseCode = "400", description = "Validation error"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<?> registerTrainee(
+    public ResponseEntity<CredentialsDto> registerTrainee(
             @Parameter(description = "Trainee registration data")
             @RequestBody TraineeRegisterDto traineeRegisterDto) {
         CredentialsDto dto = traineeService.createTrainee(traineeRegisterDto);
@@ -76,12 +75,10 @@ public class TraineeController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Forbidden")
     })
-    public ResponseEntity<?> getTrainee(
+    public ResponseEntity<TraineeResponseDto> getTrainee(
             @Parameter(description = "Trainee username", required = true)
-            @PathVariable("username") String username,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader) {
-        TraineeResponseDto dto = traineeService.getTraineeByUsername(authHeader, username);
+            @PathVariable("username") String username) {
+        TraineeResponseDto dto = traineeService.getTraineeByUsername(username);
         return ResponseEntity.ok(dto);
     }
 
@@ -96,12 +93,10 @@ public class TraineeController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Forbidden")
     })
-    public ResponseEntity<?> updateTrainee(
+    public ResponseEntity<TraineeResponseDto> updateTrainee(
             @Parameter(description = "Trainee update data")
-            @RequestBody TraineeRequestDto traineeRequestDto,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader) {
-        TraineeResponseDto dto = traineeService.updateTrainee(authHeader, traineeRequestDto);
+            @RequestBody TraineeRequestDto traineeRequestDto) {
+        TraineeResponseDto dto = traineeService.updateTrainee(traineeRequestDto);
         return ResponseEntity.ok(dto);
     }
 
@@ -109,17 +104,17 @@ public class TraineeController {
     @DeleteMapping("/{username}")
     @Operation(summary = "Delete trainee", description = "Deletes a trainee by username")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Trainee deleted successfully"),
+            @ApiResponse(
+                    responseCode = "200", description = "Trainee deleted successfully",
+                    content = @Content(mediaType = "text/plain")),
             @ApiResponse(responseCode = "400", description = "Validation error"),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Forbidden")
     })
-    public ResponseEntity<?> deleteTrainee(
+    public ResponseEntity<String> deleteTrainee(
             @Parameter(description = "Trainee username", required = true)
-            @PathVariable("username") String username,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader) {
-        traineeService.deleteTrainee(authHeader, username);
+            @PathVariable("username") String username) {
+        traineeService.deleteTrainee(username);
         return ResponseEntity.ok("Trainee deleted successfully");
     }
 
@@ -134,12 +129,10 @@ public class TraineeController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Forbidden")
     })
-    public ResponseEntity<?> getAvailableTrainers(
+    public ResponseEntity<List<TrainerShortDto>> getAvailableTrainers(
             @Parameter(description = "Trainee username", required = true)
-            @PathVariable("username") String username,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader) {
-        List<TrainerShortDto> dtos = traineeService.getAvailableTrainersForTrainee(authHeader, username);
+            @PathVariable("username") String username) {
+        List<TrainerShortDto> dtos = traineeService.getAvailableTrainersForTrainee(username);
         return ResponseEntity.ok(dtos);
     }
 
@@ -154,12 +147,10 @@ public class TraineeController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Forbidden")
     })
-    public ResponseEntity<?> updateTrainerList(
+    public ResponseEntity<List<TrainerShortDto>> updateTrainerList(
             @Parameter(description = "Trainer list update data")
-            @RequestBody UpdateTrainerListDto updateTrainerListDto,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader) {
-        List<TrainerShortDto> dtos = traineeService.updateTraineeTrainers(authHeader, updateTrainerListDto);
+            @RequestBody UpdateTrainerListDto updateTrainerListDto) {
+        List<TrainerShortDto> dtos = traineeService.updateTraineeTrainers(updateTrainerListDto);
         return ResponseEntity.ok(dtos);
     }
 
@@ -174,7 +165,7 @@ public class TraineeController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Forbidden")
     })
-    public ResponseEntity<?> getTraineeTrainings(
+    public ResponseEntity<List<TrainingResponseDto>> getTraineeTrainings(
             @Parameter(description = "Trainee username", required = true)
             @PathVariable("username") String username,
             @Parameter(description = "From date (optional)")
@@ -184,10 +175,8 @@ public class TraineeController {
             @Parameter(description = "Trainer username (optional)")
             @RequestParam(name = "trainerName", required = false) String trainerName,
             @Parameter(description = "Training type (optional)")
-            @RequestParam(name = "type", required = false) String type,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader(name = "Authorization") String authHeader) {
-        List<TrainingResponseDto> dtos = traineeService.getTraineeTrainings(authHeader, username, fromDate, toDate,
+            @RequestParam(name = "type", required = false) String type) {
+        List<TrainingResponseDto> dtos = traineeService.getTraineeTrainings(username, fromDate, toDate,
                 trainerName, type);
         return ResponseEntity.ok(dtos);
     }
@@ -196,17 +185,17 @@ public class TraineeController {
     @PatchMapping("/active-status")
     @Operation(summary = "Change trainee active status", description = "Enable or disable a trainee account")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Active status changed"),
+            @ApiResponse(
+                    responseCode = "200", description = "Active status changed",
+                    content = @Content(mediaType = "text/plain")),
             @ApiResponse(responseCode = "400", description = "Validation error"),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Forbidden")
     })
-    public ResponseEntity<?> setActiveStatus(
+    public ResponseEntity<String> setActiveStatus(
             @Parameter(description = "Trainee status update data")
-            @RequestBody ActiveStatusDto activeStatusDto,
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader) {
-        Boolean status = traineeService.setTraineeActiveStatus(authHeader, activeStatusDto);
+            @RequestBody ActiveStatusDto activeStatusDto) {
+        Boolean status = traineeService.setTraineeActiveStatus(activeStatusDto);
         return ResponseEntity.ok("Trainee active status changed to " + status);
     }
 

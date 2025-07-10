@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Schema(description = "Trainee and list of trainers to assign")
 public class UpdateTrainerListDto {
-    @Schema(description = "Trainee username", example = "ivan.petrov", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Trainee username", example = "Ivan.Petrov", requiredMode = Schema.RequiredMode.REQUIRED)
     private String username;
 
     @Schema(description = "List of trainer usernames to assign", example = "[\"Dina.Aliyeva\", \"Alex.Smirnov\"]",

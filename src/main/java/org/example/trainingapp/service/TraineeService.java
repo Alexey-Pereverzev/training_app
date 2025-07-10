@@ -15,13 +15,13 @@ import java.util.List;
 
 public interface TraineeService {
     CredentialsDto createTrainee(TraineeRegisterDto traineeRegisterDto);
-    TraineeResponseDto updateTrainee(String authHeader, TraineeRequestDto traineeRequestDto);
-    void deleteTrainee(String authHeader, String username);
-    TraineeResponseDto getTraineeByUsername(String authHeader, String username);
-    Boolean setTraineeActiveStatus(String authHeader, ActiveStatusDto activeStatusDto);
-    List<TrainingResponseDto> getTraineeTrainings(String authHeader, String username, LocalDate fromDate, LocalDate toDate,
+    TraineeResponseDto updateTrainee(TraineeRequestDto traineeRequestDto);
+    void deleteTrainee(String username);
+    TraineeResponseDto getTraineeByUsername(String username);
+    Boolean setTraineeActiveStatus(ActiveStatusDto activeStatusDto);
+    List<TrainingResponseDto> getTraineeTrainings(String username, LocalDate fromDate, LocalDate toDate,
                                                   String trainerName, String trainingTypeName);
-    List<TrainerShortDto> updateTraineeTrainers(String authHeader, UpdateTrainerListDto updateTrainerListDto);
-    List<TrainerShortDto> getAvailableTrainersForTrainee(String authHeader, String username);
+    List<TrainerShortDto> updateTraineeTrainers(UpdateTrainerListDto updateTrainerListDto);
+    List<TrainerShortDto> getAvailableTrainersForTrainee(String username);
     void setNewPassword(String username, String oldPassword, String newPassword);
 }

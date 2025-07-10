@@ -1,9 +1,6 @@
 package org.example.trainingapp.service.impl;
 
 import org.example.trainingapp.converter.Converter;
-import org.example.trainingapp.dao.TraineeDao;
-import org.example.trainingapp.dao.TrainerDao;
-import org.example.trainingapp.dao.UserDao;
 import org.example.trainingapp.dto.ActiveStatusDto;
 import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TraineeRequestDto;
@@ -16,18 +13,21 @@ import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.exception.ForbiddenAccessException;
-import org.example.trainingapp.util.AuthUtil;
+import org.example.trainingapp.metrics.RegistrationMetrics;
+import org.example.trainingapp.repository.TraineeRepository;
+import org.example.trainingapp.repository.TrainerRepository;
+import org.example.trainingapp.repository.UserRepository;
+import org.example.trainingapp.util.AuthContextUtil;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -45,16 +45,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TraineeServiceImplTest {
 
     @Mock
-    private TraineeDao traineeDao;
+    private TraineeRepository traineeRepository;
 
     @Mock
-    private TrainerDao trainerDao;
+    private TrainerRepository trainerRepository;
 
     @Mock
-    private UserDao userDao;
+    private UserRepository userRepository;
 
     @Mock
     private Converter converter;
+
+    @Mock
+    private AuthContextUtil authContextUtil;
+
+    @Mock
+    private RegistrationMetrics registrationMetrics;
 
     @InjectMocks
     private TraineeServiceImpl traineeService;
@@ -76,12 +82,12 @@ class TraineeServiceImplTest {
                 .address("Almaty")
                 .build();
         when(converter.dtoToEntity(traineeDto)).thenReturn(traineeEntity);
-        when(userDao.findUsernamesByNameAndSurname("Ivan", "Petrov")).thenReturn(Set.of());
+        when(userRepository.findUsernamesByFirstNameAndLastName("Ivan", "Petrov")).thenReturn(Set.of());
         // when
         traineeService.createTrainee(traineeDto);
         // then
         ArgumentCaptor<Trainee> captor = ArgumentCaptor.forClass(Trainee.class);
-        verify(traineeDao).save(captor.capture());
+        verify(traineeRepository).save(captor.capture());
         Trainee saved = captor.getValue();
         assertThat(saved.getUsername()).isEqualTo("Ivan.Petrov");
         assertThat(saved.getPassword()).isNotNull();
@@ -93,6 +99,7 @@ class TraineeServiceImplTest {
     @Test
     void whenUpdatingTrainee_shouldCallDaoUpdate() {
         // given
+        String username = "Nina.Rakhimova";
         TraineeRequestDto traineeRequestDto = TraineeRequestDto.builder()
                 .firstName("Nina")
                 .lastName("Rakhimova")
@@ -108,26 +115,25 @@ class TraineeServiceImplTest {
                 .address("Astana")
                 .trainers(new ArrayList<>())
                 .build();
-        when(traineeDao.findByUsernameWithTrainers("Nina.Rakhimova")).thenReturn(Optional.of(traineeEntity));
+        when(traineeRepository.findByUsernameWithTrainers(username)).thenReturn(Optional.of(traineeEntity));
         // when
-        String authHeader = TestUtils.createAuthHeader("Nina.Rakhimova", "somePassword");
-        traineeRequestDto.setUsername("Nina.Rakhimova");
-        traineeService.updateTrainee(authHeader, traineeRequestDto);
+        traineeRequestDto.setUsername(username);
+        traineeService.updateTrainee(traineeRequestDto);
         // then
-        verify(traineeDao).update(any(Trainee.class));
+        verify(traineeRepository).save(any(Trainee.class));
     }
 
 
     @Test
     void whenUpdatingTraineeTrainers_andTrainerNotFound_shouldThrowRuntimeException() {
         // given
-        Trainee trainee = new Trainee(1L, "Nina", "Rakhimova", "Nina.Rakhimova",
-                "pw", true, LocalDate.now(), "X", null, null);
-        when(traineeDao.findByUsernameWithTrainers("Nina.Rakhimova")).thenReturn(Optional.of(trainee));
-        UpdateTrainerListDto dto = new UpdateTrainerListDto("Nina.Rakhimova", List.of("Unknown.Trainer"));
-        String authHeader = TestUtils.createAuthHeader("Nina.Rakhimova", "pw");
+        String username = "Nina.Rakhimova";
+        Trainee trainee = new Trainee(1L, "Nina", "Rakhimova", username, "pw", true,
+                LocalDate.now(), "X", null, null);
+        when(traineeRepository.findByUsernameWithTrainers(username)).thenReturn(Optional.of(trainee));
+        UpdateTrainerListDto dto = new UpdateTrainerListDto(username, List.of("Unknown.Trainer"));
         // when + then
-        assertThatThrownBy(() -> traineeService.updateTraineeTrainers(authHeader, dto))
+        assertThatThrownBy(() -> traineeService.updateTraineeTrainers(dto))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Not found trainer with username");
     }
@@ -137,11 +143,11 @@ class TraineeServiceImplTest {
     void whenDeletingTrainee_ownAccount_shouldCallDao() {
         // given
         String username = "Elena.Zharkynbaeva";
-        String authHeader = TestUtils.createAuthHeader(username, "pw");
+        when(authContextUtil.getUsername()).thenReturn(username);
         // when
-        traineeService.deleteTrainee(authHeader, username);
+        traineeService.deleteTrainee(username);
         // then
-        verify(traineeDao).deleteByUsername(username);
+        verify(traineeRepository).deleteByUsername(username);
     }
 
 
@@ -149,27 +155,27 @@ class TraineeServiceImplTest {
     void whenDeletingTrainee_withBlankUsername_shouldThrowException() {
         // given
         String blankUsername = "   ";
-        String authHeader = TestUtils.createAuthHeader(blankUsername, "pw");
+        when(authContextUtil.getUsername()).thenReturn(blankUsername);
+
         // when + then
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth(blankUsername, "pw")) {
-            assertThatThrownBy(() -> traineeService.deleteTrainee(authHeader, blankUsername))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Username is required");
-        }
+        assertThatThrownBy(() -> traineeService.deleteTrainee(blankUsername))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Username is required");
     }
 
 
     @Test
     void whenDeletingTrainee_anotherUsersAccount_shouldThrowForbiddenAccessException() {
         // given
-        String authHeader = TestUtils.createAuthHeader("Elena.Zharkynbaeva", "pw");
+        String username = "Elena.Zharkynbaeva";
+        when(authContextUtil.getUsername()).thenReturn(username);
         String otherUsername = "Dina.Aliyeva";
         // when + then
         assertThatThrownBy(() ->
-                traineeService.deleteTrainee(authHeader, otherUsername))
+                traineeService.deleteTrainee(otherUsername))
                 .isInstanceOf(ForbiddenAccessException.class)
                 .hasMessageContaining("User is not the owner of entity");
-        verify(traineeDao, never()).deleteByUsername(any());
+        verify(traineeRepository, never()).deleteByUsername(any());
     }
 
 
@@ -177,14 +183,11 @@ class TraineeServiceImplTest {
     void whenDeletingTraineeWithValidAuth_shouldCallDeleteByUsername() {
         // given
         String username = "Sergey.Shapovalov";
-        String password = "pw";
-        String authHeader = TestUtils.createAuthHeader(username, password);
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth("Sergey.Shapovalov", "pw")) {
-            // when
-            traineeService.deleteTrainee(authHeader, username);
-            // then
-            verify(traineeDao).deleteByUsername(username);
-        }
+        when(authContextUtil.getUsername()).thenReturn(username);
+        // when
+        traineeService.deleteTrainee(username);
+        // then
+        verify(traineeRepository).deleteByUsername(username);
     }
 
 
@@ -193,10 +196,8 @@ class TraineeServiceImplTest {
         // given
         String username = "Dina.Aliyeva";
         String password = "password123";
-        String authHeader = TestUtils.createAuthHeader(username, password);
-        Trainee trainee = new Trainee(3L, "Dina", "Aliyeva", username, password,
-                true, LocalDate.of(1992, 3, 3), "Almaty", new ArrayList<>(),
-                new ArrayList<>());
+        Trainee trainee = new Trainee(3L, "Dina", "Aliyeva", username, password, true,
+                LocalDate.of(1992, 3, 3), "Almaty", new ArrayList<>(), new ArrayList<>());
         List<TrainerShortDto> trainerShortDtos = new ArrayList<>();
         TraineeResponseDto expectedDto = TraineeResponseDto.builder()
                 .username(username)
@@ -207,14 +208,15 @@ class TraineeServiceImplTest {
                 .active(true)
                 .trainers(trainerShortDtos)
                 .build();
-        when(traineeDao.findByUsername(username)).thenReturn(Optional.of(trainee));
-        when(traineeDao.findByUsernameWithTrainers(username)).thenReturn(Optional.of(trainee));
+        when(authContextUtil.getUsername()).thenReturn(username);
+        when(traineeRepository.findByUsername(username)).thenReturn(Optional.of(trainee));
+        when(traineeRepository.findByUsernameWithTrainers(username)).thenReturn(Optional.of(trainee));
         when(converter.entityToDtoWithoutUsername(trainee, trainerShortDtos)).thenReturn(expectedDto);
         // when
-        TraineeResponseDto result = traineeService.getTraineeByUsername(authHeader, username);
+        TraineeResponseDto result = traineeService.getTraineeByUsername(username);
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getUsername()).isEqualTo("Dina.Aliyeva");
+        assertThat(result.getUsername()).isEqualTo(username);
         assertThat(result.getFirstName()).isEqualTo("Dina");
         assertThat(result.getLastName()).isEqualTo("Aliyeva");
         assertThat(result.getAddress()).isEqualTo("Almaty");
@@ -228,11 +230,10 @@ class TraineeServiceImplTest {
     void whenGettingTraineeByUsername_notFound_shouldThrowException() {
         // given
         String username = "nonexistentUser";
-        String password = "password123";
-        String authHeader = TestUtils.createAuthHeader(username, password);
-        when(traineeDao.findByUsername(username)).thenReturn(Optional.empty());
+        when(authContextUtil.getUsername()).thenReturn(username);
+        when(traineeRepository.findByUsername(username)).thenReturn(Optional.empty());
         // when + then
-        assertThatThrownBy(() -> traineeService.getTraineeByUsername(authHeader, username))
+        assertThatThrownBy(() -> traineeService.getTraineeByUsername(username))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Trainee not found: " + username);
     }
@@ -241,44 +242,44 @@ class TraineeServiceImplTest {
     @Test
     void whenSettingTraineeActiveStatus_shouldUpdateActiveField() {
         // given
-        Trainee trainee = new Trainee(20L, "Azamat", "Yeszhanov", "Azamat.Yeszhanov",
-                "pw", true, LocalDate.of(1994, 4, 4), "Astana",
-                null, null);
-        when(traineeDao.findByUsername("Azamat.Yeszhanov")).thenReturn(Optional.of(trainee));
+        String username = "Azamat.Yeszhanov";
+        Trainee trainee = new Trainee(20L, "Azamat", "Yeszhanov", username, "pw",
+                true, LocalDate.of(1994, 4, 4), "Astana", null, null);
+        when(traineeRepository.findByUsername(username)).thenReturn(Optional.of(trainee));
         // when
-        ActiveStatusDto dto = new ActiveStatusDto("Azamat.Yeszhanov", false);
-        String authHeader = TestUtils.createAuthHeader("Azamat.Yeszhanov", "pw");
-        traineeService.setTraineeActiveStatus(authHeader, dto);
+        ActiveStatusDto dto = new ActiveStatusDto(username, false);
+        traineeService.setTraineeActiveStatus(dto);
         // then
         assertThat(trainee.isActive()).isFalse();
-        verify(traineeDao).update(trainee);
+        verify(traineeRepository).save(trainee);
     }
 
 
     @Test
     void whenGettingTraineeTrainings_andTraineeHasNoTrainings_shouldReturnEmptyList() {
         // given
-        Trainee trainee = new Trainee(40L, "Elena", "Zharkynbaeva", "Elena.Zharkynbaeva",
-                "pw", true, LocalDate.of(1995, 6, 6), "Pavlodar",
-                Collections.emptyList(), new ArrayList<>());
-        String authHeader = TestUtils.createAuthHeader("Elena.Zharkynbaeva", "pw");
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth("Elena.Zharkynbaeva", "pw")) {
-            when(traineeDao.findByUsernameWithTrainings("Elena.Zharkynbaeva")).thenReturn(Optional.of(trainee));
-            // when
-            List<TrainingResponseDto> result = traineeService.getTraineeTrainings(authHeader, "Elena.Zharkynbaeva",
-                    null, null, null, null);
-            // then
-            assertThat(result).isEmpty();
-        }
+        String username = "Elena.Zharkynbaeva";
+        Trainee trainee = new Trainee(40L, "Elena", "Zharkynbaeva", username, "pw",
+                true, LocalDate.of(1995, 6, 6), "Pavlodar", Collections.emptyList(),
+                new ArrayList<>());
+        when(authContextUtil.getUsername()).thenReturn(username);
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
+
+        // when
+        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(username, null, null,
+                null, null);
+
+        // then
+        assertThat(result).isEmpty();
     }
 
 
     @Test
     void whenGettingTraineeTrainings_withDateRange_shouldFilterCorrectly() {
         // given
-        Trainee trainee = new Trainee(1L, "Dina", "Aliyeva", "Dina.Aliyeva", "pw",
-                true, LocalDate.of(1992, 3, 3), "Almaty", new ArrayList<>(),
-                new ArrayList<>());
+        String username = "Dina.Aliyeva";
+        Trainee trainee = new Trainee(1L, "Dina", "Aliyeva", username, "pw", true,
+                LocalDate.of(1992, 3, 3), "Almaty", new ArrayList<>(), new ArrayList<>());
         Training training1 = new Training();
         training1.setTrainingDate(LocalDate.of(2024, 5, 10));
         training1.setTrainingName("Kickboxing");
@@ -303,14 +304,13 @@ class TraineeServiceImplTest {
                         .trainerName(training2.getTrainer().getUsername())
                         .build()
         );
-        when(traineeDao.findByUsernameWithTrainings("Dina.Aliyeva")).thenReturn(Optional.of(trainee));
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
         LocalDate fromDate = LocalDate.of(2024, 5, 15);
         LocalDate toDate = LocalDate.of(2024, 5, 25);
-        String authHeader = TestUtils.createAuthHeader("Dina.Aliyeva", "pw");
+        when(authContextUtil.getUsername()).thenReturn(username);
         // when
-        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(authHeader, "Dina.Aliyeva",
-                fromDate, toDate, null, null
-        );
+        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(username, fromDate, toDate, null,
+                null);
         // then
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getDate()).isEqualTo(training2.getTrainingDate());
@@ -321,9 +321,9 @@ class TraineeServiceImplTest {
     @Test
     void whenGettingTraineeTrainings_withTrainerName_shouldFilterCorrectly() {
         // given
-        Trainee trainee = new Trainee(2L, "Dina", "Aliyeva", "Dina.Aliyeva", "pw",
-                true, LocalDate.of(1992, 3, 3), "Almaty", new ArrayList<>(),
-                new ArrayList<>());
+        String username = "Dina.Aliyeva";
+        Trainee trainee = new Trainee(2L, "Dina", "Aliyeva", username, "pw", true,
+                LocalDate.of(1992, 3, 3), "Almaty", new ArrayList<>(), new ArrayList<>());
 
         Trainer trainer1 = new Trainer();
         trainer1.setId(1L);
@@ -345,18 +345,17 @@ class TraineeServiceImplTest {
         trainee.getTrainings().add(training1);
         trainee.getTrainings().add(training2);
 
-        when(traineeDao.findByUsernameWithTrainings("Dina.Aliyeva")).thenReturn(Optional.of(trainee));
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
         when(converter.entityToDtoWithNullTrainee(training2)).thenReturn(
                 TrainingResponseDto.builder()
                         .name("Boxing Basics")
                         .trainerName("Oksana.Mikhaylova")
                         .build()
         );
-        String authHeader = TestUtils.createAuthHeader("Dina.Aliyeva", "pw");
+        when(authContextUtil.getUsername()).thenReturn(username);
         // when
-        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(
-                authHeader, "Dina.Aliyeva", null, null, "Oksana.Mikhaylova", null
-        );
+        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(username, null, null,
+                "Oksana.Mikhaylova", null);
         // then
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getName()).isEqualTo("Boxing Basics");
@@ -367,10 +366,11 @@ class TraineeServiceImplTest {
     @Test
     void whenGettingTraineeTrainings_withTrainingType_shouldFilterCorrectly() {
         // given
+        String username = "Dina.Aliyeva";
         Trainee trainee = Trainee.builder()
                 .firstName("Dina")
                 .lastName("Aliyeva")
-                .username("Dina.Aliyeva")
+                .username(username)
                 .password("pw")
                 .active(true)
                 .dateOfBirth(LocalDate.of(1992, 3, 3))
@@ -400,17 +400,16 @@ class TraineeServiceImplTest {
         trainee.getTrainings().add(training1);
         trainee.getTrainings().add(training2);
 
-        when(traineeDao.findByUsernameWithTrainings("Dina.Aliyeva")).thenReturn(Optional.of(trainee));
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
         when(converter.entityToDtoWithNullTrainee(training2)).thenReturn(
                 TrainingResponseDto.builder()
                         .type("Boxing")
                         .build()
         );
-        String authHeader = TestUtils.createAuthHeader("Dina.Aliyeva", "pw");
+        when(authContextUtil.getUsername()).thenReturn(username);
         // when
-        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(authHeader, "Dina.Aliyeva",
-                null, null, "Oksana.Mikhaylova", null
-        );
+        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(username, null, null,
+                "Oksana.Mikhaylova", null);
         // then
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getType()).isEqualTo("Boxing");
@@ -420,9 +419,9 @@ class TraineeServiceImplTest {
     @Test
     void whenGettingTraineeTrainings_withNoFilters_shouldReturnAll() {
         // given
-        Trainee trainee = new Trainee(4L, "Dina", "Aliyeva", "Dina.Aliyeva", "pw",
-                true, LocalDate.of(1992, 3, 3), "Almaty", new ArrayList<>(),
-                new ArrayList<>());
+        String username = "Dina.Aliyeva";
+        Trainee trainee = new Trainee(4L, "Dina", "Aliyeva", username, "pw", true,
+                LocalDate.of(1992, 3, 3), "Almaty", new ArrayList<>(), new ArrayList<>());
 
         Training training1 = new Training();
         training1.setTrainingName("Session 1");
@@ -449,11 +448,11 @@ class TraineeServiceImplTest {
                             .date(training.getTrainingDate())
                             .build();
                 });
-        when(traineeDao.findByUsernameWithTrainings("Dina.Aliyeva")).thenReturn(Optional.of(trainee));
-        String authHeader = TestUtils.createAuthHeader("Dina.Aliyeva", "pw");
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
+        when(authContextUtil.getUsername()).thenReturn(username);
         // when
-        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(authHeader, "Dina.Aliyeva",
-                null, null, null, null);
+        List<TrainingResponseDto> result = traineeService.getTraineeTrainings(username, null, null,
+                null, null);
         // then
         assertThat(result).hasSize(2);
         List<String> names = result.stream().map(TrainingResponseDto::getName).toList();
@@ -464,31 +463,32 @@ class TraineeServiceImplTest {
     @Test
     void whenUpdatingTraineeTrainers_shouldSetNewTrainers() {
         // given
-        Trainee trainee = new Trainee(50L, "Aigerim", "Seilkhanova", "Aigerim.Seilkhanova",
-                "pw", true, LocalDate.of(1996, 7, 7), "Shymkent",
-                new ArrayList<>(), new ArrayList<>());
-        when(traineeDao.findByUsernameWithTrainers("Aigerim.Seilkhanova")).thenReturn(Optional.of(trainee));
+        String username = "Aigerim.Seilkhanova";
+        Trainee trainee = new Trainee(50L, "Aigerim", "Seilkhanova", username, "pw",
+                true, LocalDate.of(1996, 7, 7), "Shymkent", new ArrayList<>(),
+                new ArrayList<>());
+        when(traineeRepository.findByUsernameWithTrainers(username)).thenReturn(Optional.of(trainee));
         Trainer trainer1 = new Trainer();
         trainer1.setId(1L);
         trainer1.setUsername("Arman.Nurpeisov");
         trainer1.setTrainees(new ArrayList<>());
-        when(trainerDao.findByUsernameWithTrainees("Arman.Nurpeisov")).thenReturn(Optional.of(trainer1));
+        when(trainerRepository.findByUsernameWithTrainees("Arman.Nurpeisov")).thenReturn(Optional.of(trainer1));
         // when
-        UpdateTrainerListDto dto = new UpdateTrainerListDto("Aigerim.Seilkhanova", List.of("Arman.Nurpeisov"));
-        String authHeader = "Basic " + Base64.getEncoder().encodeToString("Aigerim.Seilkhanova:pw".getBytes());
-        traineeService.updateTraineeTrainers(authHeader, dto);
+        UpdateTrainerListDto dto = new UpdateTrainerListDto(username, List.of("Arman.Nurpeisov"));
+        traineeService.updateTraineeTrainers(dto);
         // then
         assertThat(trainee.getTrainers()).contains(trainer1);
-        verify(traineeDao).update(trainee);
+        verify(traineeRepository).save(trainee);
     }
 
 
     @Test
     void whenGettingAvailableTrainersForTrainee_shouldReturnUnassignedTrainers() {
         // given
+        String username = "Bagdat.Serikbay";
         Trainee trainee = new Trainee();
         trainee.setId(60L);
-        trainee.setUsername("Bagdat.Serikbay");
+        trainee.setUsername(username);
 
         Trainer assignedTrainer = new Trainer();
         assignedTrainer.setId(1L);
@@ -503,8 +503,8 @@ class TraineeServiceImplTest {
         unassignedTrainer.setLastName("Zhumagulov");
 
         trainee.setTrainers(List.of(assignedTrainer));
-        when(traineeDao.findByUsernameWithTrainers("Bagdat.Serikbay")).thenReturn(Optional.of(trainee));
-        when(trainerDao.findAll()).thenReturn(List.of(assignedTrainer, unassignedTrainer));
+        when(traineeRepository.findByUsernameWithTrainers(username)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findAll()).thenReturn(List.of(assignedTrainer, unassignedTrainer));
         when(converter.entityToShortDto(unassignedTrainer)).thenReturn(
                 TrainerShortDto.builder()
                         .username(unassignedTrainer.getUsername())
@@ -513,9 +513,9 @@ class TraineeServiceImplTest {
                         .specializationName(null)  // или нужное значение, если задано
                         .build()
         );
-        String authHeader = TestUtils.createAuthHeader("Bagdat.Serikbay", "pw");
+        when(authContextUtil.getUsername()).thenReturn(username);
         // when
-        List<TrainerShortDto> result = traineeService.getAvailableTrainersForTrainee(authHeader, "Bagdat.Serikbay");
+        List<TrainerShortDto> result = traineeService.getAvailableTrainersForTrainee(username);
         // then
         assertThat(result).hasSize(1);
         TrainerShortDto trainer = result.getFirst();
@@ -528,15 +528,15 @@ class TraineeServiceImplTest {
     @Test
     void whenChangingTraineePassword_shouldUpdatePassword() {
         // given
-        Trainee trainee = new Trainee(10L, "Dina", "Aliyeva", "Dina.Aliyeva",
-                "oldPass", true, LocalDate.of(1992, 3, 3), "Almaty",
-                null, null);
-        when(traineeDao.findByUsername("Dina.Aliyeva")).thenReturn(Optional.of(trainee));
+        String username = "Dina.Aliyeva";
+        Trainee trainee = new Trainee(10L, "Dina", "Aliyeva", username, "oldPass",
+                true, LocalDate.of(1992, 3, 3), "Almaty", null, null);
+        when(traineeRepository.findByUsername(username)).thenReturn(Optional.of(trainee));
         // when
-        traineeService.setNewPassword("Dina.Aliyeva", "oldPass", "newPass");
+        traineeService.setNewPassword(username, "oldPass", "newPass");
         // then
         assertThat(trainee.getPassword()).isEqualTo("newPass");
-        verify(traineeDao).update(trainee);
+        verify(traineeRepository).save(trainee);
     }
 
 }

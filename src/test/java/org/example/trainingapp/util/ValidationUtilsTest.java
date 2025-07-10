@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.util.List;
@@ -339,6 +340,21 @@ class ValidationUtilsTest {
     void whenValidateUsername_ok() {
         // then
         ValidationUtils.validateUsername("Good.Username");
+    }
+
+    @Test
+    void whenIsValidTrainingTypeEnum_validValue_shouldReturnTrue() {
+        assertThat(ValidationUtils.isValidTrainingTypeEnum("Fitness")).isTrue();
+    }
+
+    @Test
+    void whenIsValidTrainingTypeEnum_invalidValue_shouldReturnFalse() {
+        assertThat(ValidationUtils.isValidTrainingTypeEnum("Invalid")).isFalse();
+    }
+
+    @Test
+    void whenIsValidTrainingTypeEnum_null_shouldReturnFalse() {
+        assertThat(ValidationUtils.isValidTrainingTypeEnum(null)).isFalse();
     }
 
 }

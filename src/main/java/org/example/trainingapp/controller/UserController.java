@@ -2,6 +2,7 @@ package org.example.trainingapp.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -38,11 +38,13 @@ public class UserController {
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticates user credentials and returns user role")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User successfully authenticated"),
+            @ApiResponse(
+                    responseCode = "200", description = "User successfully authenticated",
+                    content = @Content(mediaType = "text/plain")),
             @ApiResponse(responseCode = "400", description = "Invalid credentials"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<?> login(
+    public ResponseEntity<String> login(
             @Parameter(description = "User credentials")
             @RequestBody CredentialsDto credentialsDto) {
         Role role = authenticationService.authorize(credentialsDto);
@@ -53,16 +55,16 @@ public class UserController {
     @PutMapping("/change-password")
     @Operation(summary = "Change user password", description = "Changes the password of an authenticated user")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Password successfully changed"),
+            @ApiResponse(
+                    responseCode = "200", description = "Password successfully changed",
+                    content = @Content(mediaType = "text/plain")),
             @ApiResponse(responseCode = "400", description = "Invalid input"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<?> changePassword(
-            @Parameter(description = "Authorization header (Basic Auth)", required = true)
-            @RequestHeader("Authorization") String authHeader,
+    public ResponseEntity<String> changePassword(
             @Parameter(description = "Password change request")
             @RequestBody ChangePasswordDto changePasswordDto) {
-        userService.changePassword(authHeader, changePasswordDto);
+        userService.changePassword(changePasswordDto);
         return ResponseEntity.ok("Password successfully changed");
     }
 

@@ -1,20 +1,20 @@
 package org.example.trainingapp.service.impl;
 
 import org.example.trainingapp.converter.Converter;
-import org.example.trainingapp.dao.TraineeDao;
-import org.example.trainingapp.dao.TrainerDao;
-import org.example.trainingapp.dao.TrainingDao;
 import org.example.trainingapp.dto.TrainingRequestDto;
 import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
-import org.example.trainingapp.util.AuthUtil;
+import org.example.trainingapp.metrics.TrainingExecutionMetrics;
+import org.example.trainingapp.repository.TraineeRepository;
+import org.example.trainingapp.repository.TrainerRepository;
+import org.example.trainingapp.repository.TrainingRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -23,7 +23,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,44 +32,53 @@ import static org.mockito.Mockito.when;
 class TrainingServiceImplTest {
 
     @Mock
-    private TrainingDao trainingDao;
+    private TrainingRepository trainingRepository;
 
     @Mock
-    private TrainerDao trainerDao;
+    private TrainerRepository trainerRepository;
 
     @Mock
-    private TraineeDao traineeDao;
+    private TraineeRepository traineeRepository;
 
     @Mock
     private Converter converter;
 
+    @Mock
+    private TrainingExecutionMetrics trainingExecutionMetrics;
+
     @InjectMocks
     private TrainingServiceImpl trainingService;
+
+    @BeforeEach
+    void setUp() {
+        doAnswer(invocation -> {
+            Runnable runnable = invocation.getArgument(0);
+            runnable.run();
+            return null;
+        }).when(trainingExecutionMetrics).record(any(Runnable.class));
+    }
 
 
     @Test
     void whenCreatingTraining_shouldCallDaoSave() {
         // given
+        String username = "Elena.Sokolova";
         TrainingRequestDto req = TrainingRequestDto.builder()
                 .name("Power Yoga")
                 .date(LocalDate.of(2024, 5, 10))
                 .duration(60)
                 .traineeName("Anna.Ivanova")
-                .trainerName("Elena.Sokolova")
+                .trainerName(username)
                 .build();
         Training entity = buildMockTraining();
         when(converter.dtoToEntity(req)).thenReturn(entity);
-        when(trainerDao.findByUsernameWithTrainees("Elena.Sokolova")).thenReturn(Optional.of(entity.getTrainer()));
-        when(traineeDao.findByUsernameWithTrainers("Anna.Ivanova")).thenReturn(Optional.of(entity.getTrainee()));
-        doNothing().when(trainerDao).update(any());
-        String authHeader = TestUtils.createAuthHeader("Elena.Sokolova", "pw");
-        try (MockedStatic<AuthUtil> ignored = TestUtils.mockDecodeAuth("Elena.Sokolova", "pw")) {
-            // when
-            String result = trainingService.createTraining(authHeader, req);
-            // then
-            verify(trainingDao).save(entity);
-            assertThat(result).isEqualTo("Power Yoga");
-        }
+        when(trainerRepository.findByUsernameWithTrainees(username)).thenReturn(Optional.of(entity.getTrainer()));
+        when(traineeRepository.findByUsernameWithTrainers("Anna.Ivanova")).thenReturn(Optional.of(entity.getTrainee()));
+        // when
+        String result = trainingService.createTraining(req);
+        // then
+        verify(trainingRepository).save(entity);
+        assertThat(result).isEqualTo("Power Yoga");
     }
 
 

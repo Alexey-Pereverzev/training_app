@@ -1,0 +1,40 @@
+database:
+  url: jdbc:postgresql://localhost:5432/training_app_test
+  username: test_user
+  password: test_password
+  driver-class-name: org.postgresql.Driver
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG
+        type:
+          descriptor:
+            sql:
+              BasicBinder: TRACE
+
+spring:
+  datasource:
+    url: ${database.url}
+    username: ${database.username}
+    password: ${database.password}
+    driver-class-name: ${database.driver-class-name}
+    hikari:
+      maximum-pool-size: 2
+      connection-timeout: 3000
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # deleting schema after shutdown
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: false  # no migrations for unit/integration tests
+
+server:
+  port: 0  # random unused port
