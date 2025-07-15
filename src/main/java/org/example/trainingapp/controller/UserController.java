@@ -111,6 +111,7 @@ public class UserController {
 
 
     @PostMapping("/logout")
+    @PreAuthorize("hasAnyRole('TRAINER', 'TRAINEE')")
     @Operation(summary = "User logout", description = "Blacklist user's token")
     @ApiResponses({
             @ApiResponse(

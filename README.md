@@ -160,9 +160,10 @@ ERROR: Critical error
 - Credentials (username/password) are generated dynamically and stored in DB.
 - Usernames are generated with duplicates prevented.
 - Jwt tokens are generated used RSA-encryption.
-- Blacklisted tokens are stored in Redis. Redis is cleaned up of expired tokens on the application startup.
+- Blacklisted tokens are stored in Redis. Redis is cleaned up of expired tokens on the application startup (RedisBlacklistCleanup).
 - Passwords and other sensitive data are **never** logged; only usernames, IDs, or non-confidential fields appear in logs.
 - 100% test coverage of services and utils.
+- For testing purposes 15 trainees and 4 trainers with hashed passwords added. Original passwords are their names in lower case, for example: username "Oksana.Mikhaylova", password: "oksana".
 
 ### Design Patterns Used
 The project incorporates several established design patterns:
@@ -201,8 +202,9 @@ solution: JwtTokenUtil.generateToken() used to return jwt-token for /login endpo
 
 4. Add Brute Force protector. Block user for 5 minutes on 3 unsuccessful logins
 ```
-solution: added fields to User entity: LocalDateTime lockTime, LocalDateTime lastFailedLogin and boolean isAccountLocked().
-Working with unsuccessful login attempts is implemented into JpaAuthenticationService.authorize() 
+solution: added fields to User entity: int failedAttempts, LocalDateTime lockTime, LocalDateTime lastFailedLogin 
+and boolean isAccountLocked(). Working with unsuccessful login attempts is implemented into 
+JpaAuthenticationService.authorize() 
 ```
 
 5. Implement Logout functionality and configure it in Spring Security.
