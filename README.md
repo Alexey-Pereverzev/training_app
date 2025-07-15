@@ -33,6 +33,7 @@ This is a modular Java 21 application built using **Spring Boot**. It manages tr
 | Authentication    | JWT-tokens                |
 | Storage           | PostgreSQL                |
 | Migration         | Flyway                    |
+| Key-value storage | Redis                     |
 | API documentation | Swagger                   |
 
 ---
@@ -159,7 +160,7 @@ ERROR: Critical error
 - Credentials (username/password) are generated dynamically and stored in DB.
 - Usernames are generated with duplicates prevented.
 - Jwt tokens are generated used RSA-encryption.
-- Blacklisted tokens are stored in Redis. Redis is cleaned up of expired tokens on the application startup
+- Blacklisted tokens are stored in Redis. Redis is cleaned up of expired tokens on the application startup.
 - Passwords and other sensitive data are **never** logged; only usernames, IDs, or non-confidential fields appear in logs.
 - 100% test coverage of services and utils.
 
@@ -175,6 +176,8 @@ The project incorporates several established design patterns:
 - **Strategy (Validation)** - Validation in class ValidationUtils
 - **Decorator (Metrics)** - Timer metric
 - **Adapter** - DTO <-> Entity conversion
+
+---
 
 ### Task implementation for module 6:
 
