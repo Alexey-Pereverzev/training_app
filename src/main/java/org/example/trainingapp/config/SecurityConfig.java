@@ -2,9 +2,7 @@ package org.example.trainingapp.config;
 
 import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.jwt.AuthTokenFilter;
-import org.example.trainingapp.jwt.JwtTokenUtil;
 import org.example.trainingapp.service.impl.CustomUserDetailsService;
-import org.example.trainingapp.jwt.TokenBlacklistUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -30,9 +28,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenUtil jwtTokenUtil;
+    private final AuthTokenFilter authTokenFilter;
     private final CustomUserDetailsService userDetailsService;
-    private final TokenBlacklistUtil tokenBlacklistUtil;
 
 
     @Bean
@@ -56,7 +53,7 @@ public class SecurityConfig {
                 .exceptionHandling((exception) -> exception.authenticationEntryPoint
                         (new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
                 //  status 401 if guest is trying to get to the secured endpoint
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -66,11 +63,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-
-    @Bean
-    public AuthTokenFilter authenticationJwtTokenFilter() {
-        return new AuthTokenFilter(jwtTokenUtil, userDetailsService, tokenBlacklistUtil);
-    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
