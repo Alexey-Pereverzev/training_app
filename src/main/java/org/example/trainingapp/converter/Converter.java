@@ -1,6 +1,7 @@
 package org.example.trainingapp.converter;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TraineeShortDto;
@@ -20,25 +21,18 @@ import org.example.trainingapp.repository.TrainerRepository;
 import org.example.trainingapp.repository.TrainingTypeRepository;
 
 import org.example.trainingapp.util.ValidationUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 
 @Component
+@RequiredArgsConstructor
 public class Converter {
+
     private final TrainingTypeRepository trainingTypeRepository;
     private final TrainerRepository trainerRepository;
     private final TraineeRepository traineeRepository;
-
-    @Autowired
-    public Converter(TrainingTypeRepository trainingTypeRepository, TrainerRepository trainerRepository, 
-                     TraineeRepository traineeRepository) {
-        this.trainingTypeRepository = trainingTypeRepository;
-        this.trainerRepository = trainerRepository;
-        this.traineeRepository = traineeRepository;
-    }
 
 
     public Trainee dtoToEntity(TraineeRegisterDto traineeRegisterDto) {

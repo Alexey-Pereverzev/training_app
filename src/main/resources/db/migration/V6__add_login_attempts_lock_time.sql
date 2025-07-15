@@ -1,0 +1,4 @@
+ALTER TABLE users
+ADD COLUMN failed_attempts INT DEFAULT 0,
+ADD COLUMN last_failed_login TIMESTAMP,
+ADD COLUMN lock_time TIMESTAMP;

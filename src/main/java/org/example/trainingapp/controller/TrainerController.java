@@ -8,20 +8,18 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.example.trainingapp.aspect.CheckOwnership;
 import org.example.trainingapp.dto.ActiveStatusDto;
-import org.example.trainingapp.dto.CredentialsDto;
-import org.example.trainingapp.dto.TrainerRegisterDto;
 import org.example.trainingapp.dto.TrainerRequestDto;
 import org.example.trainingapp.dto.TrainerResponseDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
 import org.example.trainingapp.service.TrainerService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,33 +33,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/trainers")
 @Tag(name = "Trainers", description = "Operations related to trainers")
+@RequiredArgsConstructor
 public class TrainerController {
+
     private final TrainerService trainerService;
-
-    @Autowired
-    public TrainerController(TrainerService trainerService) {
-        this.trainerService = trainerService;
-    }
-
-
-    @Operation(summary = "Register a new trainer", description = "Creates a new trainer and returns credentials")
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "201", description = "Trainer created successfully",
-                    content = @Content(schema = @Schema(implementation = CredentialsDto.class))),
-            @ApiResponse(responseCode = "400", description = "Validation error"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized")
-    })
-    @PostMapping("/register")
-    public ResponseEntity<CredentialsDto> registerTrainer(
-            @Parameter(description = "Trainer registration data")
-            @RequestBody TrainerRegisterDto trainerRegisterDto) {
-        CredentialsDto dto = trainerService.createTrainer(trainerRegisterDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
-    }
 
 
     @GetMapping("/{username}")
+    @PreAuthorize("hasRole('TRAINER')")
+    @CheckOwnership
     @Operation(summary = "Get trainer profile", description = "Returns trainer profile by username")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Trainer profile found",
@@ -79,6 +59,8 @@ public class TrainerController {
 
 
     @PutMapping()
+    @PreAuthorize("hasRole('TRAINER')")
+    @CheckOwnership
     @Operation(summary = "Update trainer profile", description = "Updates trainer info")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Trainer updated successfully",
@@ -96,6 +78,8 @@ public class TrainerController {
 
 
     @GetMapping("/{username}/trainings")
+    @PreAuthorize("hasRole('TRAINER')")
+    @CheckOwnership
     @Operation(summary = "Get trainer's trainings", description = "Returns list of trainings conducted by the trainer")
     @ApiResponses({
             @ApiResponse(
@@ -121,6 +105,8 @@ public class TrainerController {
 
 
     @PatchMapping("/active-status")
+    @PreAuthorize("hasRole('TRAINER')")
+    @CheckOwnership
     @Operation(summary = "Change trainer active status", description = "Sets the trainer's active status")
     @ApiResponses({
             @ApiResponse(

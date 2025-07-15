@@ -18,12 +18,13 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("Training App API")
                         .description("REST API for managing trainees, trainers and trainings")
-                        .version("1.0"))
+                        .version("1.1"))
                 .components(new Components()
-                        .addSecuritySchemes("basicAuth",
+                        .addSecuritySchemes("bearerAuth",
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
-                                        .scheme("basic")))
-                .addSecurityItem(new SecurityRequirement().addList("basicAuth"));
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
     }
 }

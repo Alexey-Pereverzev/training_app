@@ -2,7 +2,6 @@ package org.example.trainingapp.service.impl;
 
 import org.example.trainingapp.converter.Converter;
 import org.example.trainingapp.dto.ActiveStatusDto;
-import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TraineeRequestDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TrainerShortDto;
@@ -13,25 +12,22 @@ import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.exception.ForbiddenAccessException;
-import org.example.trainingapp.metrics.RegistrationMetrics;
 import org.example.trainingapp.repository.TraineeRepository;
 import org.example.trainingapp.repository.TrainerRepository;
-import org.example.trainingapp.repository.UserRepository;
 import org.example.trainingapp.util.AuthContextUtil;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,49 +47,16 @@ class TraineeServiceImplTest {
     private TrainerRepository trainerRepository;
 
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
     private Converter converter;
 
     @Mock
     private AuthContextUtil authContextUtil;
 
     @Mock
-    private RegistrationMetrics registrationMetrics;
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private TraineeServiceImpl traineeService;
-
-
-    @Test
-    void whenCreatingTrainee_shouldGenerateUsernameAndPassword() {
-        // given
-        TraineeRegisterDto traineeDto = TraineeRegisterDto.builder()
-                .firstName("Ivan")
-                .lastName("Petrov")
-                .dateOfBirth(LocalDate.of(1990, 1, 1))
-                .address("Almaty")
-                .build();
-        Trainee traineeEntity = Trainee.builder()
-                .firstName("Ivan")
-                .lastName("Petrov")
-                .dateOfBirth(LocalDate.of(1990, 1, 1))
-                .address("Almaty")
-                .build();
-        when(converter.dtoToEntity(traineeDto)).thenReturn(traineeEntity);
-        when(userRepository.findUsernamesByFirstNameAndLastName("Ivan", "Petrov")).thenReturn(Set.of());
-        // when
-        traineeService.createTrainee(traineeDto);
-        // then
-        ArgumentCaptor<Trainee> captor = ArgumentCaptor.forClass(Trainee.class);
-        verify(traineeRepository).save(captor.capture());
-        Trainee saved = captor.getValue();
-        assertThat(saved.getUsername()).isEqualTo("Ivan.Petrov");
-        assertThat(saved.getPassword()).isNotNull();
-        assertThat(saved.getPassword().length()).isEqualTo(10);
-        assertThat(saved.isActive()).isTrue();
-    }
 
 
     @Test
@@ -529,14 +492,16 @@ class TraineeServiceImplTest {
     void whenChangingTraineePassword_shouldUpdatePassword() {
         // given
         String username = "Dina.Aliyeva";
+        String rawPassword = "newPass";
+        String encodedPassword = "encodedPass123";
         Trainee trainee = new Trainee(10L, "Dina", "Aliyeva", username, "oldPass",
                 true, LocalDate.of(1992, 3, 3), "Almaty", null, null);
         when(traineeRepository.findByUsername(username)).thenReturn(Optional.of(trainee));
+        when(passwordEncoder.encode(rawPassword)).thenReturn(encodedPassword);
         // when
-        traineeService.setNewPassword(username, "oldPass", "newPass");
+        traineeService.setNewPassword(username, "newPass");
         // then
-        assertThat(trainee.getPassword()).isEqualTo("newPass");
+        assertThat(trainee.getPassword()).isEqualTo(encodedPassword);
         verify(traineeRepository).save(trainee);
     }
-
 }

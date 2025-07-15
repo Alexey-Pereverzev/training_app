@@ -8,23 +8,21 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.example.trainingapp.aspect.CheckOwnership;
 import org.example.trainingapp.dto.ActiveStatusDto;
-import org.example.trainingapp.dto.CredentialsDto;
 import org.example.trainingapp.dto.TraineeRequestDto;
-import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TrainerShortDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
 import org.example.trainingapp.dto.UpdateTrainerListDto;
 import org.example.trainingapp.service.TraineeService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,34 +36,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/trainees")
 @Tag(name = "Trainees", description = "Operations related to trainees")
+@RequiredArgsConstructor
 public class TraineeController {
 
     private final TraineeService traineeService;
 
-    @Autowired
-    public TraineeController(TraineeService traineeService) {
-        this.traineeService = traineeService;
-    }
-
-
-    @PostMapping("/register")
-    @Operation(summary = "Register a new trainee", description = "Creates a new trainee and returns credentials")
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "201", description = "Trainee created successfully",
-                    content = @Content(schema = @Schema(implementation = CredentialsDto.class))),
-            @ApiResponse(responseCode = "400", description = "Validation error"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized")
-    })
-    public ResponseEntity<CredentialsDto> registerTrainee(
-            @Parameter(description = "Trainee registration data")
-            @RequestBody TraineeRegisterDto traineeRegisterDto) {
-        CredentialsDto dto = traineeService.createTrainee(traineeRegisterDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
-    }
-
 
     @GetMapping("/{username}")
+    @PreAuthorize("hasRole('TRAINEE')")
+    @CheckOwnership
     @Operation(summary = "Get trainee info", description = "Returns trainee profile by username")
     @ApiResponses({
             @ApiResponse(
@@ -84,6 +63,8 @@ public class TraineeController {
 
 
     @PutMapping()
+    @PreAuthorize("hasRole('TRAINEE')")
+    @CheckOwnership
     @Operation(summary = "Update trainee", description = "Updates trainee profile")
     @ApiResponses({
             @ApiResponse(
@@ -102,6 +83,8 @@ public class TraineeController {
 
 
     @DeleteMapping("/{username}")
+    @PreAuthorize("hasRole('TRAINEE')")
+    @CheckOwnership
     @Operation(summary = "Delete trainee", description = "Deletes a trainee by username")
     @ApiResponses({
             @ApiResponse(
@@ -120,6 +103,8 @@ public class TraineeController {
 
 
     @GetMapping("/{username}/available-trainers")
+    @PreAuthorize("hasRole('TRAINEE')")
+    @CheckOwnership
     @Operation(summary = "Get available trainers", description = "Returns trainers not yet assigned to trainee")
     @ApiResponses({
             @ApiResponse(
@@ -138,6 +123,8 @@ public class TraineeController {
 
 
     @PutMapping("/trainer-list")
+    @PreAuthorize("hasRole('TRAINEE')")
+    @CheckOwnership
     @Operation(summary = "Update trainer list", description = "Updates trainee's list of trainers")
     @ApiResponses({
             @ApiResponse(
@@ -156,6 +143,8 @@ public class TraineeController {
 
 
     @GetMapping("/{username}/trainings")
+    @PreAuthorize("hasRole('TRAINEE')")
+    @CheckOwnership
     @Operation(summary = "Get trainee trainings", description = "Filter trainee trainings by date, trainer or type")
     @ApiResponses({
             @ApiResponse(
@@ -183,6 +172,8 @@ public class TraineeController {
 
 
     @PatchMapping("/active-status")
+    @PreAuthorize("hasRole('TRAINEE')")
+    @CheckOwnership
     @Operation(summary = "Change trainee active status", description = "Enable or disable a trainee account")
     @ApiResponses({
             @ApiResponse(

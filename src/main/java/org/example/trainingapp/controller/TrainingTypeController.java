@@ -7,10 +7,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.dto.TrainingTypeDto;
 import org.example.trainingapp.service.TrainingTypeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,16 +22,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/training-types")
 @Tag(name = "Training Types", description = "Operations related to training types")
+@RequiredArgsConstructor
 public class TrainingTypeController {
-    private final TrainingTypeService trainingTypeService;
 
-    @Autowired
-    public TrainingTypeController(TrainingTypeService trainingTypeService) {
-        this.trainingTypeService = trainingTypeService;
-    }
+    private final TrainingTypeService trainingTypeService;
 
 
     @GetMapping()
+    @PreAuthorize("hasRole('TRAINER')")
     @Operation(summary = "Get training types", description = "Returns a list of available training types for selection")
     @ApiResponses({
             @ApiResponse(

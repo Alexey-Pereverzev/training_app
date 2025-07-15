@@ -10,6 +10,7 @@ This is a modular Java 21 application built using **Spring Boot**. It manages tr
 - Generate unique usernames and random passwords
 - Modular architecture following **SOLID**, **KISS**, and **DRY** principles
 - **REST** controllers
+- **Spring Security** configured using JWT-tokens
 - **Swagger UI** plugged in
 - Structured logging at multiple levels (`INFO`, `WARNING`, `SEVERE`)
 - Unit tests with **JUnit 5** and **Mockito**
@@ -28,6 +29,8 @@ This is a modular Java 21 application built using **Spring Boot**. It manages tr
 | JPA               | Spring Data JPA           |
 | Tests             | JUnit 5, Mockito          |
 | Configuration     | YAML (`application.yaml`) |
+| Security          | Spring Security           |
+| Authentication    | JWT-tokens                |
 | Storage           | PostgreSQL                |
 | Migration         | Flyway                    |
 | API documentation | Swagger                   |
@@ -40,14 +43,16 @@ This is a modular Java 21 application built using **Spring Boot**. It manages tr
 src/
 ├── main/
 │   ├── java/org.example.trainingapp/
-│   │   ├── aspect/          # AOP: authentication check, transaction logging
+│   │   ├── aspect/          # AOP: authentication method ownership, transaction logging
 │   │   ├── config/          # Spring config classes
+│   │   ├── constant/        # String constants
 │   │   ├── controller/      # REST controllers
 │   │   ├── converter/       # Entity <-> DTO conversion
 │   │   ├── dto/             # DTO for service layer
 │   │   ├── entity/          # Domain model: Trainee, Trainer, etc.
 │   │   ├── exception/       # Custom exceptions and Controller Advice
 │   │   ├── health/          # Custom health indicators
+│   │   ├── jwt/             # JWT utils
 │   │   ├── metrics/         # Custom Prometheus metrics
 │   │   ├── repository/      # Spring JPA repositories
 │   │   ├── service/         # Business logic layer
@@ -59,6 +64,7 @@ src/
 │           
 └── test/
     └── java/org.example.trainingapp/
+        ├── jwt/             # Unit tests for jwt util classes
         ├── service/         # Unit tests for service classes
         └── util/            # Unit tests for utility classes
 ```
@@ -74,25 +80,34 @@ git clone https://github.com/Alexey-Pereverzev/training_app.git
 cd training_app
 ```
 
-### 2. Run the application (default profile is 'local')
+### 2. Get RSA keys from the author and put them into /secret folder located in the project root
+
+```bash
+public.key
+private.key
+```
+
+### 3. Run Redis on port 6379
+
+### 4. Run the application (default profile is 'local')
 
 ```bash
 ./gradlew bootRun
 ```
 
-### 3. Swagger UI is available at:
+### 5. Swagger UI is available at:
 
 ```bash
 http://localhost:8080/trainingapp/swagger-ui/index.html
 ```
 
-### 4. Health checks exposed at:
+### 6. Health checks exposed at:
 
 ```bash
 http://localhost:8080/trainingapp/actuator/health
 ```
 
-### 5. Prometheus-compatible metrics are available at:
+### 7. Prometheus-compatible metrics are available at:
 
 ```bash
 http://localhost:8080/trainingapp/actuator/prometheus
@@ -107,13 +122,16 @@ http://localhost:8080/trainingapp/actuator/prometheus
 ```
 
 Test coverage includes:
-- DaoAuthenticationService
+- CustomUserDetailsService
+- JpaAuthenticationService
 - TraineeServiceImpl
 - TrainerServiceImpl
 - TrainingServiceImpl
 - TrainingTypeServiceImpl
 - UserServiceImpl
-- AuthUtil
+- AuthTokenFilter
+- JwtTokenUtil
+- TokenBlacklistUtil
 - AuthContextUtil
 - CredentialsUtil
 - ValidationUtils
@@ -140,6 +158,8 @@ ERROR: Critical error
 
 - Credentials (username/password) are generated dynamically and stored in DB.
 - Usernames are generated with duplicates prevented.
+- Jwt tokens are generated used RSA-encryption.
+- Blacklisted tokens are stored in Redis. Redis is cleaned up of expired tokens on the application startup
 - Passwords and other sensitive data are **never** logged; only usernames, IDs, or non-confidential fields appear in logs.
 - 100% test coverage of services and utils.
 
@@ -156,48 +176,59 @@ The project incorporates several established design patterns:
 - **Decorator (Metrics)** - Timer metric
 - **Adapter** - DTO <-> Entity conversion
 
-### Task implementation for module 5:
+### Task implementation for module 6:
 
 **Based on the codebase created during the previous module, implement follow functionality:**
-1. Convert existing application to be Spring boot Application.
+
+1. Add Spring Security module to your project and configurate it for Authentication access for all endpoints (except Create Trainer/Trainee profile).
+Use Username/Password combination.
 ```
-solution: Done. Added necessary dependencies, deleted old config files and added necessary configs for Jackson parsing, 
-Logging and Swagger. DAO layer substituted with the repository layer.
+solution: Class SecurityConfig + @PreAuthorize. Ownership of methods are checked in AOP @CheckOwnership
 ```
 
-2. Enable actuator.
-   Implement a few custom health indicators 
-   Implement a few custom metrics using Prometheus 
+2. Use salt and hashing to store user passwords in DB.
 ```
-solution: health indicatiors: /health package, Prometheus metrics: /metrics package
+solution: BCryptPasswordEncoder
 ```
 
-3. Implement support for different environments (local, dev, stg, prod). Use Spring profiles.
+3. Configure Spring Security to use Login functionality.
 ```
-solution: implemented profiles using yaml configuration:
-application-local.yaml (default)
-application-dev.yaml
-application-prod.yaml
-application-stg.yaml
-application-test.yaml
+solution: JwtTokenUtil.generateToken() used to return jwt-token for /login endpoint
+```
+
+4. Add Brute Force protector. Block user for 5 minutes on 3 unsuccessful logins
+```
+solution: added fields to User entity: LocalDateTime lockTime, LocalDateTime lastFailedLogin and boolean isAccountLocked().
+Working with unsuccessful login attempts is implemented into JpaAuthenticationService.authorize() 
+```
+
+5. Implement Logout functionality and configure it in Spring Security.
+```
+solution: /logout andpoint + TokenBlacklistUtil class. Blacklisted tokens are checked in the security filter chain by
+AuthTokenFilter.doFilterInternal()
+```
+
+6. Implement Authorization − Bearer token for Create Profile and Login functionality Use JWT token implementation.
+```
+solution: class JwtTokenUtil
+```
+
+7. Configure CORS policy in Spring Security.
+```
+solution: SecurityConfig.corsConfigurationSource() used in filterChain()
 ```
 
 
 **Notes:**
-1. Cover code with unit tests. Code should contain proper logging.
+1. During Create Trainer/Trainee profile username and password should be generated as described in previous module.
 ```
 solution: all services and utils are covered with unit tests. All services uses SLF4J logging.
 ```
 
-2. Pay attention that each environment should have different db properties.
+2. All functions except Create Trainer/Trainee profile should be executed only after Trainee/Trainer authentication (on this step should be checked username and password matching)
 ```
-solution: different db properties defined in corresponding .yaml files
-```
-
-3. All functions except Create Trainer/Trainee profile should be executed only after Trainee/Trainer authentication (on this step should be checked username and password matching)
-```
-solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER role and ownership of the method 
-(true/false). Authentication header is intercepted from the RequestContextHolder in custom AuthContextUtil 
+solution: @PreAuthorize + annotation @CheckOwnership  
+Authentication and roles are provided from the SecurityContextHolder by custom AuthContextUtil 
 ```
 
 ---
@@ -205,6 +236,6 @@ solution: annotation @RequiresAuthentication with 2 parameters: TRAINEE/TRAINER 
 ## Author
 
 Aleksei Pereverzev  
-Developed as part of a Java Spring Boot learning module.
+Developed as part of a Spring Security learning module.
 
 
