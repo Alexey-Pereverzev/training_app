@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 
@@ -45,6 +46,19 @@ public abstract class User {
 
     @Column(name = "is_active", nullable = false)
     private boolean active;
+
+    @Column(name = "failed_attempts")
+    private int failedAttempts = 0;
+
+    @Column(name = "lock_time")
+    private LocalDateTime lockTime;
+
+    @Column(name = "last_failed_login")
+    private LocalDateTime lastFailedLogin;
+
+    public boolean isAccountLocked() {
+        return lockTime != null && lockTime.isAfter(LocalDateTime.now());
+    }
 
     @Override
     public boolean equals(Object o) {

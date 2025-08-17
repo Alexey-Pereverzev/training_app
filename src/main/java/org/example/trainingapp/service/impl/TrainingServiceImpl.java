@@ -1,8 +1,7 @@
 package org.example.trainingapp.service.impl;
 
 import jakarta.persistence.EntityNotFoundException;
-import org.example.trainingapp.aspect.RequiresAuthentication;
-import org.example.trainingapp.aspect.Role;
+import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.converter.Converter;
 import org.example.trainingapp.dto.TrainingRequestDto;
 import org.example.trainingapp.entity.Trainee;
@@ -16,12 +15,12 @@ import org.example.trainingapp.service.TrainingService;
 import org.example.trainingapp.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
+@RequiredArgsConstructor
 public class TrainingServiceImpl implements TrainingService {
 
     private static final Logger log = LoggerFactory.getLogger(TrainingServiceImpl.class.getName());
@@ -31,21 +30,9 @@ public class TrainingServiceImpl implements TrainingService {
     private final Converter converter;
     private final TrainingExecutionMetrics trainingExecutionMetrics;
 
-    @Autowired
-    public TrainingServiceImpl(TrainingRepository trainingRepository, TrainerRepository trainerRepository,
-                               TraineeRepository traineeRepository, Converter converter,
-                               TrainingExecutionMetrics trainingExecutionMetrics) {
-        this.trainingRepository = trainingRepository;
-        this.trainerRepository = trainerRepository;
-        this.traineeRepository = traineeRepository;
-        this.converter = converter;
-        this.trainingExecutionMetrics = trainingExecutionMetrics;
-    }
-
 
     @Override
     @Transactional
-    @RequiresAuthentication(allowedRoles = {Role.TRAINER})
     public String createTraining(TrainingRequestDto trainingRequestDto) {
         ValidationUtils.validateTraining(trainingRequestDto);
         Training training;

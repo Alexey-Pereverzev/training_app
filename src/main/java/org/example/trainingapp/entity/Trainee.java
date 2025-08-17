@@ -36,9 +36,10 @@ public class Trainee extends User {
     @ManyToMany(mappedBy = "trainees")
     private List<Trainer> trainers;
 
+
     public Trainee(Long id, String firstName, String lastName, String username, String password, boolean isActive,
                    LocalDate dateOfBirth, String address, List<Training> trainings, List<Trainer> trainers) {
-        super(id, firstName, lastName, username, password, isActive);
+        super(id, firstName, lastName, username, password, isActive, 0, null, null);
         this.dateOfBirth = dateOfBirth;
         this.address = address;
         this.trainings = trainings;

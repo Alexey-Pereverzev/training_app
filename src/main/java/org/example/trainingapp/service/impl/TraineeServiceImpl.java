@@ -1,12 +1,9 @@
 package org.example.trainingapp.service.impl;
 
-import org.example.trainingapp.aspect.RequiresAuthentication;
-import org.example.trainingapp.aspect.Role;
+import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.converter.Converter;
 import org.example.trainingapp.dto.ActiveStatusDto;
-import org.example.trainingapp.dto.CredentialsDto;
 import org.example.trainingapp.dto.TraineeRequestDto;
-import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TrainerShortDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
@@ -16,17 +13,14 @@ import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.User;
 import org.example.trainingapp.exception.ForbiddenAccessException;
-import org.example.trainingapp.metrics.RegistrationMetrics;
 import org.example.trainingapp.repository.TraineeRepository;
 import org.example.trainingapp.repository.TrainerRepository;
-import org.example.trainingapp.repository.UserRepository;
 import org.example.trainingapp.service.TraineeService;
 import org.example.trainingapp.util.AuthContextUtil;
-import org.example.trainingapp.util.CredentialsUtil;
 import org.example.trainingapp.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,55 +33,19 @@ import java.util.stream.Collectors;
 
 
 @Service
+@RequiredArgsConstructor
 public class TraineeServiceImpl implements TraineeService {
 
     private static final Logger log = LoggerFactory.getLogger(TraineeServiceImpl.class.getName());
-    private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
-    private final UserRepository userRepository;
     private final Converter converter;
     private final AuthContextUtil authContextUtil;
-    private final RegistrationMetrics registrationMetrics;
-
-    @Autowired
-    public TraineeServiceImpl(TraineeRepository traineeRepository, TrainerRepository trainerRepository,
-                              UserRepository userRepository, Converter converter, AuthContextUtil authContextUtil,
-                              RegistrationMetrics registrationMetrics) {
-        this.traineeRepository = traineeRepository;
-        this.trainerRepository = trainerRepository;
-        this.userRepository = userRepository;
-        this.converter = converter;
-        this.authContextUtil = authContextUtil;
-        this.registrationMetrics = registrationMetrics;
-    }
+    private final TraineeRepository traineeRepository;
+    private final PasswordEncoder passwordEncoder;
 
 
     @Override
     @Transactional
-    public CredentialsDto createTrainee(TraineeRegisterDto traineeRegisterDto) {
-        ValidationUtils.validateTrainee(traineeRegisterDto);
-        Trainee trainee = converter.dtoToEntity(traineeRegisterDto);
-        Set<String> existingUsernames = userRepository.findUsernamesByFirstNameAndLastName(trainee.getFirstName(),
-                trainee.getLastName());
-        String generatedUsername = CredentialsUtil.generateUsername(trainee.getFirstName(), trainee.getLastName(),
-                existingUsernames);
-        String password = CredentialsUtil.generatePassword(10);
-        trainee.setUsername(generatedUsername);
-        trainee.setPassword(password);
-        trainee.setActive(true);
-        traineeRepository.save(trainee);
-        log.info("Trainee created: {}", trainee.getUsername());
-        registrationMetrics.incrementTrainee();         //  add to Prometheus metric
-        return CredentialsDto.builder()
-                .username(trainee.getUsername())
-                .password(trainee.getPassword())
-                .build();
-    }
-
-
-    @Override
-    @Transactional
-    @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
     public TraineeResponseDto updateTrainee(TraineeRequestDto traineeRequestDto) {
         ValidationUtils.validateTrainee(traineeRequestDto);
         String username = traineeRequestDto.getUsername();
@@ -113,7 +71,6 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
-    @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
     public void deleteTrainee(String username) {
         if (!username.equals(authContextUtil.getUsername())) {
             throw new ForbiddenAccessException("User is not the owner of entity");
@@ -127,7 +84,6 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
-    @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
     public Boolean setTraineeActiveStatus(ActiveStatusDto activeStatusDto) {
         ValidationUtils.validateActiveStatus(activeStatusDto);
         Trainee trainee = getTrainee(activeStatusDto.getUsername());
@@ -141,7 +97,6 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
-    @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
     public List<TrainerShortDto> updateTraineeTrainers(UpdateTrainerListDto updateTrainerListDto) {
         ValidationUtils.validateUpdateTrainerList(updateTrainerListDto);
         String username = updateTrainerListDto.getUsername();
@@ -180,7 +135,6 @@ public class TraineeServiceImpl implements TraineeService {
 
 
     @Override
-    @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
     public TraineeResponseDto getTraineeByUsername(String username) {
         if (!username.equals(authContextUtil.getUsername())) {
             throw new ForbiddenAccessException("User is not the owner of entity");
@@ -195,7 +149,6 @@ public class TraineeServiceImpl implements TraineeService {
 
 
     @Override
-    @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
     public List<TrainerShortDto> getAvailableTrainersForTrainee(String username) {
         if (!username.equals(authContextUtil.getUsername())) {
             throw new ForbiddenAccessException("User is not the owner of entity");
@@ -219,7 +172,6 @@ public class TraineeServiceImpl implements TraineeService {
 
 
     @Override
-    @RequiresAuthentication(allowedRoles = {Role.TRAINEE})
     public List<TrainingResponseDto> getTraineeTrainings(String username, LocalDate fromDate, LocalDate toDate,
                                                          String trainerName, String trainingTypeName) {
         if (!username.equals(authContextUtil.getUsername())) {
@@ -250,9 +202,9 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
-    public void setNewPassword(String username, String oldPassword, String newPassword) {
+    public void setNewPassword(String username, String newPassword) {
         Trainee trainee = getTrainee(username);
-        trainee.setPassword(newPassword);
+        trainee.setPassword(passwordEncoder.encode(newPassword));
         traineeRepository.save(trainee);
         log.info("Password updated for trainee {}", username);
     }
@@ -276,5 +228,4 @@ public class TraineeServiceImpl implements TraineeService {
             return new RuntimeException("Trainee not found: " + username);
         });
     }
-
 }

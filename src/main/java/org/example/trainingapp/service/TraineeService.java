@@ -1,9 +1,7 @@
 package org.example.trainingapp.service;
 
 import org.example.trainingapp.dto.ActiveStatusDto;
-import org.example.trainingapp.dto.CredentialsDto;
 import org.example.trainingapp.dto.TraineeRequestDto;
-import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TrainerShortDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
@@ -14,7 +12,6 @@ import java.util.List;
 
 
 public interface TraineeService {
-    CredentialsDto createTrainee(TraineeRegisterDto traineeRegisterDto);
     TraineeResponseDto updateTrainee(TraineeRequestDto traineeRequestDto);
     void deleteTrainee(String username);
     TraineeResponseDto getTraineeByUsername(String username);
@@ -23,5 +20,5 @@ public interface TraineeService {
                                                   String trainerName, String trainingTypeName);
     List<TrainerShortDto> updateTraineeTrainers(UpdateTrainerListDto updateTrainerListDto);
     List<TrainerShortDto> getAvailableTrainersForTrainee(String username);
-    void setNewPassword(String username, String oldPassword, String newPassword);
+    void setNewPassword(String username, String newPassword);
 }

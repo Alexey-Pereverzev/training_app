@@ -1,14 +1,10 @@
 package org.example.trainingapp.service.impl;
 
-import jakarta.persistence.EntityNotFoundException;
-import org.example.trainingapp.aspect.RequiresAuthentication;
-import org.example.trainingapp.aspect.Role;
+import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.converter.Converter;
 import org.example.trainingapp.dto.ActiveStatusDto;
-import org.example.trainingapp.dto.CredentialsDto;
 import org.example.trainingapp.dto.TraineeShortDto;
 import org.example.trainingapp.dto.TrainerRequestDto;
-import org.example.trainingapp.dto.TrainerRegisterDto;
 import org.example.trainingapp.dto.TrainerResponseDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
 import org.example.trainingapp.entity.Trainee;
@@ -16,81 +12,35 @@ import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
 import org.example.trainingapp.exception.ForbiddenAccessException;
-import org.example.trainingapp.metrics.RegistrationMetrics;
 import org.example.trainingapp.repository.TrainerRepository;
 import org.example.trainingapp.repository.TrainingTypeRepository;
-import org.example.trainingapp.repository.UserRepository;
 import org.example.trainingapp.service.TrainerService;
 import org.example.trainingapp.util.AuthContextUtil;
-import org.example.trainingapp.util.CredentialsUtil;
 import org.example.trainingapp.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
 
 
 @Service
+@RequiredArgsConstructor
 public class TrainerServiceImpl implements TrainerService {
 
     private static final Logger log = LoggerFactory.getLogger(TrainerServiceImpl.class.getName());
     private final TrainerRepository trainerRepository;
     private final Converter converter;
     private final TrainingTypeRepository trainingTypeRepository;
-    private final UserRepository userRepository;
     private final AuthContextUtil authContextUtil;
-    private final RegistrationMetrics registrationMetrics;
-
-    @Autowired
-    public TrainerServiceImpl(TrainerRepository trainerRepository, Converter converter,
-                              TrainingTypeRepository trainingTypeRepository, UserRepository userRepository,
-                              AuthContextUtil authContextUtil, RegistrationMetrics registrationMetrics) {
-        this.trainerRepository = trainerRepository;
-        this.converter = converter;
-        this.trainingTypeRepository = trainingTypeRepository;
-        this.userRepository = userRepository;
-        this.authContextUtil = authContextUtil;
-        this.registrationMetrics = registrationMetrics;
-    }
+    private final PasswordEncoder passwordEncoder;
 
 
     @Override
     @Transactional
-    public CredentialsDto createTrainer(TrainerRegisterDto trainerRegisterDto) {
-        ValidationUtils.validateTrainer(trainerRegisterDto);
-        Trainer trainer;
-        try {
-            trainer = converter.dtoToEntity(trainerRegisterDto);
-        } catch (IllegalArgumentException | EntityNotFoundException e) {
-            log.warn("Failed to convert TrainerRegisterDto to Trainer: {}", e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
-        Set<String> existingUsernames = userRepository.findUsernamesByFirstNameAndLastName(trainer.getFirstName(),
-                trainer.getLastName());
-        String generatedUsername = CredentialsUtil.generateUsername(trainer.getFirstName(), trainer.getLastName(),
-                existingUsernames);
-        String password = CredentialsUtil.generatePassword(10);
-        trainer.setUsername(generatedUsername);
-        trainer.setPassword(password);
-        trainer.setActive(true);
-        trainerRepository.save(trainer);
-        log.info("Trainer created: {}", trainer.getUsername());
-        registrationMetrics.incrementTrainer();         //  add to Prometheus metric
-        return CredentialsDto.builder()
-                .username(trainer.getUsername())
-                .password(trainer.getPassword())
-                .build();
-    }
-
-
-    @Override
-    @Transactional
-    @RequiresAuthentication(allowedRoles = {Role.TRAINER})
     public TrainerResponseDto updateTrainer(TrainerRequestDto trainerRequestDto) {
         ValidationUtils.validateTrainer(trainerRequestDto);
         String username = trainerRequestDto.getUsername();
@@ -120,7 +70,6 @@ public class TrainerServiceImpl implements TrainerService {
 
 
     @Override
-    @RequiresAuthentication(allowedRoles = {Role.TRAINER})
     public TrainerResponseDto getTrainerByUsername(String username) {
         if (!username.equals(authContextUtil.getUsername())) {
             throw new ForbiddenAccessException("User is not the owner of entity");
@@ -136,7 +85,6 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional
-    @RequiresAuthentication(allowedRoles = {Role.TRAINER})
     public Boolean setTrainerActiveStatus(ActiveStatusDto activeStatusDto) {
         ValidationUtils.validateActiveStatus(activeStatusDto);
         Trainer trainer = getTrainer(activeStatusDto.getUsername());
@@ -149,7 +97,6 @@ public class TrainerServiceImpl implements TrainerService {
 
 
     @Override
-    @RequiresAuthentication(allowedRoles = {Role.TRAINER})
     public List<TrainingResponseDto> getTrainerTrainings(String username, LocalDate fromDate,
                                                          LocalDate toDate, String traineeName) {
         if (!username.equals(authContextUtil.getUsername())) {
@@ -179,9 +126,9 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional
-    public void setNewPassword(String username, String oldPassword, String newPassword) {
+    public void setNewPassword(String username, String newPassword) {
         Trainer trainer = getTrainer(username);
-        trainer.setPassword(newPassword);
+        trainer.setPassword(passwordEncoder.encode(newPassword));
         trainerRepository.save(trainer);
         log.info("Password updated for trainer {}", username);
     }

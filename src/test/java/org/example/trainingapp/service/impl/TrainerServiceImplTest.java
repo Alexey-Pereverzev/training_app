@@ -2,8 +2,6 @@ package org.example.trainingapp.service.impl;
 
 import org.example.trainingapp.converter.Converter;
 import org.example.trainingapp.dto.ActiveStatusDto;
-import org.example.trainingapp.dto.CredentialsDto;
-import org.example.trainingapp.dto.TrainerRegisterDto;
 import org.example.trainingapp.dto.TrainerRequestDto;
 import org.example.trainingapp.dto.TrainerResponseDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
@@ -11,23 +9,20 @@ import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
 import org.example.trainingapp.entity.TrainingType;
-import org.example.trainingapp.metrics.RegistrationMetrics;
 import org.example.trainingapp.repository.TrainerRepository;
 import org.example.trainingapp.repository.TrainingTypeRepository;
-import org.example.trainingapp.repository.UserRepository;
 import org.example.trainingapp.util.AuthContextUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,51 +47,13 @@ class TrainerServiceImplTest {
     private Converter converter;
 
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
     private AuthContextUtil authContextUtil;
 
     @Mock
-    private RegistrationMetrics registrationMetrics;
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private TrainerServiceImpl trainerService;
-
-
-    @Test
-    void whenCreatingTrainer_shouldGenerateUsernameAndPassword() {
-        // given
-        TrainerRegisterDto dto = TrainerRegisterDto.builder()
-                .firstName("Dina")
-                .lastName("Aliyeva")
-                .specializationName("Yoga")
-                .build();
-
-        TrainingType yoga = new TrainingType("Yoga");
-        Trainer entity = Trainer.builder()
-                .firstName("Dina")
-                .lastName("Aliyeva")
-                .specialization(yoga)
-                .build();
-
-        when(converter.dtoToEntity(dto)).thenReturn(entity);
-        when(userRepository.findUsernamesByFirstNameAndLastName("Dina", "Aliyeva")).thenReturn(Set.of());
-        // when
-        CredentialsDto creds = trainerService.createTrainer(dto);
-
-        // then
-        ArgumentCaptor<Trainer> captor = ArgumentCaptor.forClass(Trainer.class);
-        verify(trainerRepository).save(captor.capture());
-        Trainer saved = captor.getValue();
-
-        assertThat(saved.getUsername()).isEqualTo("Dina.Aliyeva");
-        assertThat(saved.getPassword()).hasSize(10);
-        assertThat(saved.isActive()).isTrue();
-        assertThat(saved.getSpecialization().getName()).isEqualTo("Yoga");
-        assertThat(creds.getUsername()).isEqualTo(saved.getUsername());
-        assertThat(creds.getPassword()).isEqualTo(saved.getPassword());
-    }
 
 
     @Test
@@ -260,13 +217,15 @@ class TrainerServiceImplTest {
     @Test
     void whenChangingTrainerPassword_shouldPersistNewPassword() {
         // given
+        String rawPassword = "newPw";
+        String encodedPassword = "encodedPass123";
         Trainer trainer = Trainer.builder().id(99L).username("Azamat.Yeszhanov").password("oldPw").build();
         when(trainerRepository.findByUsername("Azamat.Yeszhanov")).thenReturn(Optional.of(trainer));
+        when(passwordEncoder.encode(rawPassword)).thenReturn(encodedPassword);
         // when
-        trainerService.setNewPassword("Azamat.Yeszhanov", "oldPw", "newPw");
+        trainerService.setNewPassword("Azamat.Yeszhanov", "newPw");
         // then
-        assertThat(trainer.getPassword()).isEqualTo("newPw");
+        assertThat(trainer.getPassword()).isEqualTo("encodedPass123");
         verify(trainerRepository).save(trainer);
     }
-
 }

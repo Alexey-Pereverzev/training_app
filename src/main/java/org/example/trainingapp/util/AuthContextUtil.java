@@ -1,46 +1,42 @@
 package org.example.trainingapp.util;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.example.trainingapp.aspect.Role;
-import org.example.trainingapp.dto.CredentialsDto;
-import org.example.trainingapp.service.AuthenticationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 
 @Component
 public class AuthContextUtil {
 
-    private final AuthenticationService authenticationService;
+    private static final Logger log = LoggerFactory.getLogger(AuthContextUtil.class.getName());
 
-    public AuthContextUtil(AuthenticationService authenticationService) {
-        this.authenticationService = authenticationService;
-    }
-
-    public String getRawAuthHeader() {
-        ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attr == null) {
-            throw new SecurityException("No request context.");
-        }
-        HttpServletRequest request = attr.getRequest();
-        String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Basic ")) {
-            throw new SecurityException("Missing or invalid Authorization header.");
-        }
-        return header;
-    }
-
-    public CredentialsDto getCredentials() {
-        return AuthUtil.decodeBasicAuth(getRawAuthHeader());
-    }
 
     public String getUsername() {
-        return getCredentials().getUsername();
+        Authentication auth = getAuthentication();
+        return auth.getName();
     }
 
     public Role getRole() {
-        return authenticationService.authorize(getCredentials());
+        Authentication auth = getAuthentication();
+        String authority = auth.getAuthorities().stream().findFirst()
+                .orElseThrow(() -> {
+                    log.warn("No authorities found during getting role");
+                    return new SecurityException("No authorities found");
+                }).getAuthority();
+        return Role.valueOf(authority.replace("ROLE_", ""));
+    }
+
+
+    private Authentication getAuthentication() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            log.warn("User is not authenticated");
+            throw new SecurityException("User is not authenticated");
+        }
+        return auth;
     }
 }
 

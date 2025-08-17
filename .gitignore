@@ -39,3 +39,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+**/secret/*
+src/main/java/org/example/trainingapp/PasswordHashGenerator.java

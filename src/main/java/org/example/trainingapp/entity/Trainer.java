@@ -40,9 +40,10 @@ public class Trainer extends User {
     )
     private List<Trainee> trainees;
 
+
     public Trainer(Long id, String firstName, String lastName, String username, String password, boolean isActive,
                    TrainingType specialization, List<Training> trainings, List<Trainee> trainees) {
-        super(id, firstName, lastName, username, password, isActive);
+        super(id, firstName, lastName, username, password, isActive, 0, null, null);
         this.specialization = specialization;
         this.trainings = trainings;
         this.trainees = trainees;
