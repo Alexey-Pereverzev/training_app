@@ -18,7 +18,9 @@ public interface TrainerRepository extends JpaRepository<Trainer, Long> {
             "LEFT JOIN FETCH tr.trainingType WHERE t.username = :username")
     Optional<Trainer> findByUsernameWithTrainings(@Param("username") String username);
 
-    @Query("SELECT t FROM Trainer t LEFT JOIN FETCH t.trainees WHERE t.username = :username")
+    @Query("SELECT DISTINCT t FROM Trainer t LEFT JOIN FETCH t.trainees WHERE t.username = :username")
     Optional<Trainer> findByUsernameWithTrainees(@Param("username") String username);
+
+    boolean existsByUsername(String username);
 }
 

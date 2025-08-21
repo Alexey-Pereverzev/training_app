@@ -2,6 +2,7 @@ package org.example.trainingapp.converter;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.example.trainingapp.dto.ActionType;
 import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TraineeShortDto;
@@ -11,6 +12,7 @@ import org.example.trainingapp.dto.TrainerShortDto;
 import org.example.trainingapp.dto.TrainingRequestDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
 import org.example.trainingapp.dto.TrainingTypeDto;
+import org.example.trainingapp.dto.TrainingUpdateRequest;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
 import org.example.trainingapp.entity.Training;
@@ -158,5 +160,17 @@ public class Converter {
         }
         return trainingTypeRepository.findByName(typeName)
                 .orElseThrow(() -> new EntityNotFoundException("TrainingType not found: " + typeName));
+    }
+
+    public TrainingUpdateRequest trainingAndActionToUpdateRequest(Training training, ActionType actionType) {
+        return TrainingUpdateRequest.builder()
+                .trainerUsername(training.getTrainer().getUsername())
+                .trainerFirstName(training.getTrainer().getFirstName())
+                .trainerLastName(training.getTrainer().getLastName())
+                .active(training.getTrainer().isActive())
+                .trainingDate(training.getTrainingDate())
+                .trainingDuration(training.getTrainingDuration())
+                .actionType(actionType)
+                .build();
     }
 }

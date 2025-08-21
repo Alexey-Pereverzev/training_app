@@ -27,6 +27,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -88,17 +89,16 @@ class TraineeServiceImplTest {
 
 
     @Test
-    void whenUpdatingTraineeTrainers_andTrainerNotFound_shouldThrowRuntimeException() {
+    void whenUpdatingTraineeTrainers_andTrainerNotFound_shouldThrowForbiddenAccessException() {
         // given
-        String username = "Nina.Rakhimova";
-        Trainee trainee = new Trainee(1L, "Nina", "Rakhimova", username, "pw", true,
-                LocalDate.now(), "X", null, null);
-        when(traineeRepository.findByUsernameWithTrainers(username)).thenReturn(Optional.of(trainee));
-        UpdateTrainerListDto dto = new UpdateTrainerListDto(username, List.of("Unknown.Trainer"));
+        String currentUser = "Elena.Zharkynbaeva";
+        String otherUser = "Dina.Aliyeva";
+        when(authContextUtil.getUsername()).thenReturn(currentUser);
         // when + then
-        assertThatThrownBy(() -> traineeService.updateTraineeTrainers(dto))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Not found trainer with username");
+        assertThatThrownBy(() -> traineeService.deleteTrainee(otherUser))
+                .isInstanceOf(ForbiddenAccessException.class)
+                .hasMessageContaining("User is not the owner of entity");
+        verify(traineeRepository, never()).delete(any());
     }
 
 
@@ -107,10 +107,15 @@ class TraineeServiceImplTest {
         // given
         String username = "Elena.Zharkynbaeva";
         when(authContextUtil.getUsername()).thenReturn(username);
+        Trainee trainee = new Trainee();
+        trainee.setUsername(username);
+        trainee.setTrainings(new ArrayList<>());
+        trainee.setTrainers(new ArrayList<>());
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
         // when
         traineeService.deleteTrainee(username);
         // then
-        verify(traineeRepository).deleteByUsername(username);
+        verify(traineeRepository).delete(trainee);
     }
 
 
@@ -119,38 +124,54 @@ class TraineeServiceImplTest {
         // given
         String blankUsername = "   ";
         when(authContextUtil.getUsername()).thenReturn(blankUsername);
-
         // when + then
         assertThatThrownBy(() -> traineeService.deleteTrainee(blankUsername))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Username is required");
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessageContaining("Trainee not found:    ");
     }
 
 
     @Test
     void whenDeletingTrainee_anotherUsersAccount_shouldThrowForbiddenAccessException() {
         // given
-        String username = "Elena.Zharkynbaeva";
-        when(authContextUtil.getUsername()).thenReturn(username);
-        String otherUsername = "Dina.Aliyeva";
+        String currentUser = "Elena.Zharkynbaeva";
+        String otherUser = "Dina.Aliyeva";
+        when(authContextUtil.getUsername()).thenReturn(currentUser);
         // when + then
-        assertThatThrownBy(() ->
-                traineeService.deleteTrainee(otherUsername))
+        assertThatThrownBy(() -> traineeService.deleteTrainee(otherUser))
                 .isInstanceOf(ForbiddenAccessException.class)
                 .hasMessageContaining("User is not the owner of entity");
-        verify(traineeRepository, never()).deleteByUsername(any());
+        verify(traineeRepository, never()).delete(any());
     }
 
 
     @Test
-    void whenDeletingTraineeWithValidAuth_shouldCallDeleteByUsername() {
+    void whenDeletingTrainee_notFound_shouldThrowNoSuchElementException() {
+        // given
+        String username = "Missing.User";
+        when(authContextUtil.getUsername()).thenReturn(username);
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.empty());
+        // when + then
+        assertThatThrownBy(() -> traineeService.deleteTrainee(username))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessageContaining("Trainee not found");
+    }
+
+
+    @Test
+    void whenDeletingTraineeWithValidAuth_shouldDeleteEntity() {
         // given
         String username = "Sergey.Shapovalov";
         when(authContextUtil.getUsername()).thenReturn(username);
+        Trainee trainee = new Trainee();
+        trainee.setUsername(username);
+        trainee.setTrainings(new ArrayList<>());
+        trainee.setTrainers(new ArrayList<>());
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
         // when
         traineeService.deleteTrainee(username);
         // then
-        verify(traineeRepository).deleteByUsername(username);
+        verify(traineeRepository).delete(trainee);
     }
 
 

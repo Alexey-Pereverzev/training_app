@@ -6,7 +6,7 @@ import org.example.trainingapp.aspect.Role;
 import org.example.trainingapp.dto.CredentialsDto;
 import org.example.trainingapp.dto.JwtResponse;
 import org.example.trainingapp.entity.User;
-import org.example.trainingapp.jwt.AuthTokenFilter;
+import org.example.trainingapp.filter.AuthTokenFilter;
 import org.example.trainingapp.jwt.JwtTokenUtil;
 import org.example.trainingapp.jwt.TokenBlacklistUtil;
 import org.example.trainingapp.repository.UserRepository;

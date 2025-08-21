@@ -1,20 +1,20 @@
 package org.example.trainingapp.exception;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
-
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<String> handleRuntime(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-    }
 
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<String> handleUsernameNotFound(UsernameNotFoundException ex) {
@@ -31,6 +31,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<String> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        String errorMsg = ex.getBindingResult().getAllErrors().stream()
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .collect(Collectors.joining(", "));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Validation error: " + errorMsg);
+    }
+
     @ExceptionHandler(ForbiddenAccessException.class)
     public ResponseEntity<String> handleForbiddenAccess(ForbiddenAccessException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
@@ -44,6 +52,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(JWTVerificationException.class)                                  // JWT validation failed
     public ResponseEntity<String> handleJWTVerification(JWTVerificationException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("JWT verification error: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<String> handleNoSuchElement(NoSuchElementException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGeneric(Exception ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body("Unexpected server error: " + ex.getMessage());
     }
 }
 

@@ -13,6 +13,8 @@ import org.example.trainingapp.service.TrainingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,8 +45,23 @@ public class TrainingController {
     public ResponseEntity<String> addTraining(
             @Parameter(description = "Training details")
             @RequestBody TrainingRequestDto trainingRequestDto) {
-        String name = trainingService.createTraining(trainingRequestDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Training " + name + " created successfully");
+        String message = trainingService.createTraining(trainingRequestDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(message);
+    }
+
+
+    @DeleteMapping("/{trainingName}")
+    @PreAuthorize("hasRole('TRAINER')")
+    @Operation(summary = "Delete training", description = "Deletes a training by its name")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Deleted"),
+            @ApiResponse(responseCode = "404", description = "Not found"),
+    })
+    public ResponseEntity<String> deleteTraining(
+            @Parameter(description = "Name of the training", required = true)
+            @PathVariable("trainingName") String trainingName) {
+        trainingService.deleteTrainingByName(trainingName);
+        return ResponseEntity.ok("Training " + trainingName + " deleted successfully");
     }
 
 }

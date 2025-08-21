@@ -18,9 +18,13 @@ import org.example.trainingapp.repository.TrainerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
+import java.util.Collection;
 import java.util.Optional;
 
 
@@ -28,7 +32,6 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class OwnershipAspect {
-
 
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
@@ -41,60 +44,103 @@ public class OwnershipAspect {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
+            log.warn("User is not authenticated");
             throw new SecurityException("User is not authenticated");
         }
 
-        String username = auth.getName();
-        String roleName = auth.getAuthorities().iterator().next().getAuthority(); // e.g. ROLE_TRAINER
+        String current = auth.getName();
+        Collection<? extends GrantedAuthority> auths = auth.getAuthorities();
+        if (auths == null || auths.isEmpty()) {
+            log.warn("User has no authorities");
+            throw new SecurityException("User has no authorities");
+        }
+        String roleName = auth.getAuthorities().iterator().next().getAuthority();
         Role role = Role.valueOf(roleName.replace("ROLE_", ""));
 
-        log.info("Checking ownership for user '{}' with role '{}'", username, role);
-
+        log.info("Checking ownership for user '{}' with role '{}'", current, role);
         Object[] args = joinPoint.getArgs();        //  checking if the entity which owns method is passed in args:
+
+        String dtoUsername;
+
         if (role  == Role.TRAINEE) {                //  if related entity is different from authenticated user
-                                                    //  then throw an exception
+                                                        //  then throw an exception
             for (Object arg : args) {
-                Optional<Trainee> dbTrainee = Optional.empty();
+                dtoUsername = null;
                 if (arg instanceof TraineeRequestDto traineeRequestDto) {               //  if passed in TraineeRequestDto
-                    dbTrainee = traineeRepository.findByUsername(traineeRequestDto.getUsername());
+                    dtoUsername = traineeRequestDto.getUsername();
                 } else if (arg instanceof ActiveStatusDto activeStatusDto) {            //  if passed in ActiveStatusDto
-                    dbTrainee = traineeRepository.findByUsername(activeStatusDto.getUsername());
+                    dtoUsername = activeStatusDto.getUsername();
                 } else if (arg instanceof UpdateTrainerListDto updateTrainerListDto) {  //  if passed in UpdateTrainerListDto
-                    dbTrainee = traineeRepository.findByUsername(updateTrainerListDto.getUsername());
+                    dtoUsername = updateTrainerListDto.getUsername();
                 } else if (arg instanceof ChangePasswordDto changePasswordDto) {        //  if passed in ChangePasswordDto
-                    dbTrainee = traineeRepository.findByUsername(changePasswordDto.getUsername());
+                    dtoUsername = changePasswordDto.getUsername();
                 }
-                if (dbTrainee.isPresent() && !dbTrainee.get().getUsername().equals(username)) {
-                    String message = "Access denied for trainee: " + username;
+                if (!StringUtils.hasText(dtoUsername)) continue;
+
+                Optional<Trainee> dbTrainee = traineeRepository.findByUsername(dtoUsername);
+                if (dbTrainee.isEmpty()) {
+                    log.warn("Trainee not found: {}", dtoUsername);
+                    throw new UsernameNotFoundException("Trainee not found: " + dtoUsername);
+                }
+                if (!dbTrainee.get().getUsername().equals(current)) {
+                    String message = "Access denied: user " + current + " tried to access trainee "
+                            + dbTrainee.get().getUsername();
                     log.warn(message);
                     throw new ForbiddenAccessException(message);
-                } else if (dbTrainee.isPresent()) {
-                    return;                 // ownership confirmed
                 }
+                return;                         // ownership confirmed
+            }
+        } else if (role == Role.TRAINER) {
+            for (Object arg : args) {
+                dtoUsername = null;
+                if (arg instanceof TrainerRequestDto trainerRequestDto) {               //  if passed in TrainerRequestDto
+                    dtoUsername = trainerRequestDto.getUsername();
+                } else if (arg instanceof ActiveStatusDto activeStatusDto) {            //  if passed in ActiveStatusDto
+                    dtoUsername = activeStatusDto.getUsername();
+                } else if (arg instanceof ChangePasswordDto changePasswordDto) {        //  if passed in ChangePasswordDto
+                    dtoUsername = changePasswordDto.getUsername();
+                } else if (arg instanceof TrainingRequestDto trainingRequestDto) {      //  if passed in TrainingRequestDto
+                    dtoUsername = trainingRequestDto.getTrainerName();
+                }
+                if (!StringUtils.hasText(dtoUsername)) continue;
+
+                Optional<Trainer> dbTrainer = trainerRepository.findByUsername(dtoUsername);
+                if (dbTrainer.isEmpty()) {
+                    log.warn("Trainer not found: {}", dtoUsername);
+                    throw new UsernameNotFoundException("Trainer not found: " + dtoUsername);
+                }
+                if (!dbTrainer.get().getUsername().equals(current)) {
+                    String message = "Access denied: user " + current + " tried to access trainer "
+                            + dbTrainer.get().getUsername();
+                    log.warn(message);
+                    throw new ForbiddenAccessException(message);
+                }
+                return;                         // ownership confirmed
             }
         }
 
-        if (role == Role.TRAINER) {
-            for (Object arg : args) {
-                Optional<Trainer> dbTrainer = Optional.empty();
-                if (arg instanceof TrainerRequestDto trainerRequestDto) {               //  if passed in TrainerRequestDto
-                    dbTrainer = trainerRepository.findByUsername(trainerRequestDto.getUsername());
-                } else if (arg instanceof ActiveStatusDto activeStatusDto) {            //  if passed in ActiveStatusDto
-                    dbTrainer = trainerRepository.findByUsername(activeStatusDto.getUsername());
-                } else if (arg instanceof ChangePasswordDto changePasswordDto) {        //  if passed in ChangePasswordDto
-                    dbTrainer = trainerRepository.findByUsername(changePasswordDto.getUsername());
-                } else if (arg instanceof TrainingRequestDto trainingRequestDto) {      //  if passed in TrainingRequestDto
-                    dbTrainer = trainerRepository.findByUsername(trainingRequestDto.getTrainerName());
+        if (args.length > 0 && args[0] instanceof String usernameArg) {                 // if 1st arg is String username
+            if (role == Role.TRAINER && !usernameArg.equals(current)) {
+                throw new ForbiddenAccessException("Access denied for trainer: " + current);
+            }
+            if (role == Role.TRAINEE && !usernameArg.equals(current)) {
+                throw new ForbiddenAccessException("Access denied for trainee: " + current);
+            }
+            if (role == Role.TRAINER) {
+                if (!trainerRepository.existsByUsername(usernameArg)) {
+                    throw new UsernameNotFoundException("Trainer not found: " + usernameArg);
                 }
-                if (dbTrainer.isPresent() && !dbTrainer.get().getUsername().equals(username)) {
-                    String message = "Access denied for trainer: " + username;
-                    log.warn(message);
-                    throw new ForbiddenAccessException(message);
-                } else if (dbTrainer.isPresent()) {
-                    return;                 // ownership confirmed
+            } else if (role == Role.TRAINEE) {
+                if (!traineeRepository.existsByUsername(usernameArg)) {
+                    throw new UsernameNotFoundException("Trainee not found: " + usernameArg);
                 }
             }
+            return;                                 // ownership confirmed
         }
+
+        log.warn("Ownership could not be verified: user='{}', role='{}', method='{}', args={}", current, role,
+                joinPoint.getSignature().toShortString(), java.util.Arrays.toString(args));
+        throw new ForbiddenAccessException("Ownership could not be verified for user: " + current);
     }
 
 }
