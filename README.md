@@ -14,6 +14,8 @@ This is a modular Java 21 application built using **Spring Boot**. It manages tr
 - **Swagger UI** plugged in
 - Structured logging at multiple levels (`INFO`, `WARNING`, `SEVERE`)
 - Unit tests with **JUnit 5** and **Mockito**
+- RestTemplate for microservice communication
+- Eureka for service discovery
 
 
 ---
@@ -35,6 +37,8 @@ This is a modular Java 21 application built using **Spring Boot**. It manages tr
 | Migration         | Flyway                    |
 | Key-value storage | Redis                     |
 | API documentation | Swagger                   |
+| Microservice API  | RestTemplate              |
+| Discovery service | Eureka                    |
 
 ---
 
@@ -52,6 +56,7 @@ src/
 │   │   ├── dto/             # DTO for service layer
 │   │   ├── entity/          # Domain model: Trainee, Trainer, etc.
 │   │   ├── exception/       # Custom exceptions and Controller Advice
+│   │   ├── filter/          # Security and logging filters
 │   │   ├── health/          # Custom health indicators
 │   │   ├── jwt/             # JWT utils
 │   │   ├── metrics/         # Custom Prometheus metrics
@@ -65,6 +70,7 @@ src/
 │           
 └── test/
     └── java/org.example.trainingapp/
+        ├── filter/          # Unit tests for filter classes
         ├── jwt/             # Unit tests for jwt util classes
         ├── service/         # Unit tests for service classes
         └── util/            # Unit tests for utility classes
@@ -88,27 +94,31 @@ public.key
 private.key
 ```
 
-### 3. Run Redis on port 6379
+### 3. Run eureka service 
 
-### 4. Run the application (default profile is 'local')
+### 4. Run training-hours-service  
+
+### 5. Run Redis on port 6379
+
+### 6. Run the application (default profile is 'local')
 
 ```bash
 ./gradlew bootRun
 ```
 
-### 5. Swagger UI is available at:
+### 7. Swagger UI is available at:
 
 ```bash
 http://localhost:8080/trainingapp/swagger-ui/index.html
 ```
 
-### 6. Health checks exposed at:
+### 8. Health checks exposed at:
 
 ```bash
 http://localhost:8080/trainingapp/actuator/health
 ```
 
-### 7. Prometheus-compatible metrics are available at:
+### 9. Prometheus-compatible metrics are available at:
 
 ```bash
 http://localhost:8080/trainingapp/actuator/prometheus
@@ -123,16 +133,20 @@ http://localhost:8080/trainingapp/actuator/prometheus
 ```
 
 Test coverage includes:
+- AuthTokenFilter
+- RestLoggingFilter
+- TransactionIdFilter
+- JwtTokenUtil
+- TokenBlacklistUtil
 - CustomUserDetailsService
 - JpaAuthenticationService
 - TraineeServiceImpl
+- TrainerHoursClientImpl
 - TrainerServiceImpl
+- TrainingInitializationService
 - TrainingServiceImpl
 - TrainingTypeServiceImpl
 - UserServiceImpl
-- AuthTokenFilter
-- JwtTokenUtil
-- TokenBlacklistUtil
 - AuthContextUtil
 - CredentialsUtil
 - ValidationUtils
@@ -164,6 +178,9 @@ ERROR: Critical error
 - Passwords and other sensitive data are **never** logged; only usernames, IDs, or non-confidential fields appear in logs.
 - 100% test coverage of services and utils.
 - For testing purposes 15 trainees and 4 trainers with hashed passwords added. Original passwords are their names in lower case, for example: username "Oksana.Mikhaylova", password: "oksana".
+- For calculating training hours separate training-hours-service used. It's getting requests using RestTemplate
+- After flyway migration Mongo db in 2nd microservice is overwritten with current training hours
+- Microservices discovery is implemented with Eureka
 
 ### Design Patterns Used
 The project incorporates several established design patterns:
@@ -180,60 +197,44 @@ The project incorporates several established design patterns:
 
 ---
 
-### Task implementation for module 6:
+### Task implementation for module 7:
 
 **Based on the codebase created during the previous module, implement follow functionality:**
 
-1. Add Spring Security module to your project and configurate it for Authentication access for all endpoints (except Create Trainer/Trainee profile).
-Use Username/Password combination.
+1. Update Existing Main Microservice implementation to call Secondary Microservice every time that new training added 
+or deleted to the system.
 ```
-solution: Class SecurityConfig + @PreAuthorize. Ownership of methods are checked in AOP @CheckOwnership
-```
-
-2. Use salt and hashing to store user passwords in DB.
-```
-solution: BCryptPasswordEncoder
+solution: class TrainerHoursClient managing RestTemplate calls
 ```
 
-3. Configure Spring Security to use Login functionality.
+2. Implement discovery module according to guide Eureka Discovery Service.
 ```
-solution: JwtTokenUtil.generateToken() used to return jwt-token for /login endpoint
-```
-
-4. Add Brute Force protector. Block user for 5 minutes on 3 unsuccessful logins
-```
-solution: added fields to User entity: int failedAttempts, LocalDateTime lockTime, LocalDateTime lastFailedLogin 
-and boolean isAccountLocked(). Working with unsuccessful login attempts is implemented into 
-JpaAuthenticationService.authorize() 
+solution: separate eureka-service, discovery configured in application.yaml
 ```
 
-5. Implement Logout functionality and configure it in Spring Security.
+3. Use circuit breaker design pattern in your implementation.
 ```
-solution: /logout andpoint + TokenBlacklistUtil class. Blacklisted tokens are checked in the security filter chain by
-AuthTokenFilter.doFilterInternal()
-```
-
-6. Implement Authorization − Bearer token for Create Profile and Login functionality Use JWT token implementation.
-```
-solution: class JwtTokenUtil
+solution: CurcuitBreaker logic in TrainerHoursClient
 ```
 
-7. Configure CORS policy in Spring Security.
+4. Two levels of logging should be implemented - transactions and each operation transaction level - which endpoint was
+called, which request came and the service response - 200 or error and response message + at this level, a transactionId
+is generated, by which you can track all operations for this transaction the same transactionId can later be passed
+to downstream services.
 ```
-solution: SecurityConfig.corsConfigurationSource() used in filterChain()
+solution: classes TransactionLoggingAspect + RestLoggingFilter + TransactionIdFilter 
 ```
 
 
 **Notes:**
-1. During Create Trainer/Trainee profile username and password should be generated as described in previous module.
+1. For REST API implementation use second level of Richardson maturity model.
 ```
-solution: all services and utils are covered with unit tests. All services uses SLF4J logging.
+solution: URIs are resource-oriented, HTTP methods have correct semantics, response statuses are correct..
 ```
 
-2. All functions except Create Trainer/Trainee profile should be executed only after Trainee/Trainer authentication (on this step should be checked username and password matching)
+2. Try to understand in which case training can be deleted.
 ```
-solution: @PreAuthorize + annotation @CheckOwnership  
-Authentication and roles are provided from the SecurityContextHolder by custom AuthContextUtil 
+solution: we сannot delete past trainings - added corresponding logic to the training deletion method 
 ```
 
 ---
@@ -241,6 +242,6 @@ Authentication and roles are provided from the SecurityContextHolder by custom A
 ## Author
 
 Aleksei Pereverzev  
-Developed as part of a Spring Security learning module.
+Developed as part of a Microservices learning module.
 
 
