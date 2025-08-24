@@ -2,6 +2,7 @@ package org.example.trainingapp.service.impl;
 
 import org.example.trainingapp.dto.ActionType;
 import org.example.trainingapp.dto.TrainingUpdateRequest;
+import org.example.trainingapp.exception.ServiceTimeoutException;
 import org.example.trainingapp.filter.TransactionIdFilter;
 import org.example.trainingapp.jwt.JwtTokenUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -24,6 +26,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -164,5 +167,25 @@ class TrainerHoursClientTest {
         assertThat(result).isZero();
         verifyNoInteractions(restTemplate);
     }
+
+
+    @Test
+    void whenGetTrainerHours_restTemplateTimeout_shouldThrowServiceTimeoutException() {
+        // given
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.GET),
+                any(HttpEntity.class),
+                eq(Double.class),
+                any(), any(), any()
+        )).thenThrow(new ResourceAccessException("Read timed out"));
+        // when + then
+        assertThatThrownBy(() -> client.getTrainerHours("Ivan.Ivanov", 2025, 1))
+                .isInstanceOf(ServiceTimeoutException.class)
+                .hasMessageContaining("Trainer-hours service timeout")
+                .cause()
+                .isInstanceOf(ResourceAccessException.class);
+    }
+
 }
 

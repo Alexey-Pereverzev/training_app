@@ -3,6 +3,7 @@ package org.example.trainingapp.service.impl;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.dto.TrainingUpdateRequest;
+import org.example.trainingapp.exception.ServiceTimeoutException;
 import org.example.trainingapp.filter.TransactionIdFilter;
 import org.example.trainingapp.jwt.JwtTokenUtil;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -37,6 +39,7 @@ public class TrainerHoursClient {
 
     private String serviceToken;                //  token for service calls without outer request
 
+
     @PostConstruct
     public void init() throws Exception {       //  generating system token
         UserDetails systemUser = User.withUsername("system")
@@ -46,6 +49,7 @@ public class TrainerHoursClient {
         this.serviceToken = jwtTokenUtil.generateToken(systemUser);
         log.info("Service JWT generated for inter-service calls");
     }
+
 
     private String resolveToken() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -58,10 +62,12 @@ public class TrainerHoursClient {
         return serviceToken;                //  using service token when calling service for inner purposes
     }
 
+
     private String currentTxId() {          // transactionId for other microservice
         String txId = MDC.get("txId");
         return StringUtils.hasText(txId) ? txId : UUID.randomUUID().toString();
     }
+
 
     public void notifyTrainerHours(TrainingUpdateRequest request) {
         notifyTrainerHours(request, currentTxId());
@@ -72,6 +78,7 @@ public class TrainerHoursClient {
         // TODO: Fallback logic - place the request in a local queue for later resending
         log.warn("FALLBACK: Training hours update postponed for request {}", request);
     }
+
 
     public void notifyTrainerHours(TrainingUpdateRequest request, String txId) {
         CircuitBreaker circuitBreaker = circuitBreakerFactory.create("trainerHoursService");
@@ -88,6 +95,7 @@ public class TrainerHoursClient {
         });
     }
 
+
     public void clearAllTrainerHours(String txId) {
         CircuitBreaker circuitBreaker = circuitBreakerFactory.create("trainerHoursService");
         circuitBreaker.run(() -> {
@@ -103,6 +111,7 @@ public class TrainerHoursClient {
         );
     }
 
+
     private HttpHeaders buildHeaders(String txId) {
         HttpHeaders h = new HttpHeaders();
         h.setBearerAuth(resolveToken());
@@ -113,19 +122,25 @@ public class TrainerHoursClient {
         return h;
     }
 
+
     public double getTrainerHours(String username, int year, int month) {
         CircuitBreaker cb = circuitBreakerFactory.create("trainerHoursService");
         return cb.run(() -> {
             HttpHeaders headers = buildHeaders(currentTxId());
             HttpEntity<Void> entity = new HttpEntity<>(headers);
-            ResponseEntity<Double> response = restTemplate.exchange(
-                    "http://training-hours-service/api/trainer-hours/{username}/hours?year={year}&month={month}",
-                    HttpMethod.GET,
-                    entity,
-                    Double.class,
-                    username, year, month
-            );
-            return response.getBody() != null ? response.getBody() : 0.0;
+            try {
+                ResponseEntity<Double> response = restTemplate.exchange(
+                        "http://training-hours-service/api/trainer-hours/{username}/hours?year={year}&month={month}",
+                        HttpMethod.GET,
+                        entity,
+                        Double.class,
+                        username, year, month
+                );
+                return response.getBody() != null ? response.getBody() : 0.0;
+            } catch (ResourceAccessException e) {           //  RestTemplate timeout exception
+                log.error("Timeout while fetching trainer hours for {}: {}", username, e.getMessage());
+                throw new ServiceTimeoutException("Trainer-hours service timeout", e);
+            }
         }, throwable -> {
             log.error("Fallback: cannot fetch trainer hours: {}", throwable.getMessage());
             return 0.0;

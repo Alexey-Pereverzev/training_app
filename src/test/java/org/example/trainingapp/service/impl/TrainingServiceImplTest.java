@@ -97,6 +97,7 @@ class TrainingServiceImplTest {
         assertThrows(NoSuchElementException.class, () -> trainingService.createTraining(req));
     }
 
+
     @Test
     void whenCreateTraining_traineeNotFound_shouldThrowIllegalArgumentException() {
         // given
@@ -138,6 +139,7 @@ class TrainingServiceImplTest {
         assertThat(entity.getTrainingName()).startsWith("2024-05-10#2 -");
     }
 
+
     @Test
     void whenDeleteTrainingByName_shouldRemoveAndNotify() {
         // given
@@ -153,6 +155,7 @@ class TrainingServiceImplTest {
         verify(trainerHoursClient).notifyTrainerHours(any());
     }
 
+
     @Test
     void whenDeleteTrainingByName_pastTraining_shouldThrowIllegalState() {
         // given
@@ -164,6 +167,7 @@ class TrainingServiceImplTest {
         // when + then
         assertThrows(IllegalStateException.class, () -> trainingService.deleteTrainingByName(name));
     }
+
 
     @Test
     void whenDeleteTrainingByName_trainingNotFound_shouldThrowNoSuchElement() {
@@ -192,6 +196,7 @@ class TrainingServiceImplTest {
                 .trainee(trainee)
                 .build();
     }
+
 
     private TrainingRequestDto buildReq(LocalDate date) {
         return TrainingRequestDto.builder()

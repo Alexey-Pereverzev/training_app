@@ -59,6 +59,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
+    @ExceptionHandler(ServiceTimeoutException.class)
+    public ResponseEntity<String> handleServiceTimeout(ServiceTimeoutException ex) {
+        return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT)
+                .body("Request timed out: " + ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGeneric(Exception ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body("Unexpected server error: " + ex.getMessage());

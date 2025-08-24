@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -31,8 +32,10 @@ public class RestLoggingFilter extends OncePerRequestFilter {               // l
             "/api/users/change-password"
     );
 
+
     @Override
-    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
+    protected void doFilterInternal(@NonNull HttpServletRequest req, @NonNull HttpServletResponse res,
+                                    @NonNull FilterChain chain)
             throws ServletException, IOException {
 
         ContentCachingRequestWrapper requestWrapper = new ContentCachingRequestWrapper(req);
@@ -64,9 +67,11 @@ public class RestLoggingFilter extends OncePerRequestFilter {               // l
         }
     }
 
+
     private boolean isSensitive(String method, String uri) {
         return "POST".equalsIgnoreCase(method) && SENSITIVE_ENDPOINTS.stream().anyMatch(uri::startsWith);
     }
+
 
     private String safeBody(byte[] buf, String enc) {
         if (buf == null || buf.length == 0) return "<empty>";
@@ -77,5 +82,6 @@ public class RestLoggingFilter extends OncePerRequestFilter {               // l
             return "<binary:" + len + " bytes>";
         }
     }
+
 }
 
