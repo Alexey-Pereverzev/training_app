@@ -1,9 +1,11 @@
-package org.example.trainingapp.jwt;
+package org.example.trainingapp.filter;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.example.trainingapp.jwt.JwtTokenUtil;
+import org.example.trainingapp.jwt.TokenBlacklistUtil;
 import org.example.trainingapp.service.impl.CustomUserDetailsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

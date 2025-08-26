@@ -7,6 +7,8 @@ spring:
   redis:
     host: localhost
     port: 6379
+  application:
+    name: trainingapp
 
 server:
   servlet:
@@ -26,5 +28,27 @@ management:
 jwt:
   lifetime: 36000000
   keys-path: secret
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      trainerHoursService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      trainerHoursService:
+        timeoutDuration: 3s
 
 

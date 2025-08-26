@@ -1,7 +1,7 @@
 package org.example.trainingapp.config;
 
 import lombok.RequiredArgsConstructor;
-import org.example.trainingapp.jwt.AuthTokenFilter;
+import org.example.trainingapp.filter.AuthTokenFilter;
 import org.example.trainingapp.service.impl.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

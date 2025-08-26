@@ -1,5 +1,9 @@
 package org.example.trainingapp.constant;
 
+import lombok.Getter;
+
+
+@Getter
 public enum Constant {
     ROLE("role"),
     BEARER("Bearer ");
@@ -8,9 +12,5 @@ public enum Constant {
 
     Constant(String value) {
         this.value = value;
-    }
-
-    public String getValue() {
-        return value;
     }
 }

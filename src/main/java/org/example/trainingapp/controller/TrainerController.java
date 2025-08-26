@@ -15,6 +15,7 @@ import org.example.trainingapp.dto.TrainerRequestDto;
 import org.example.trainingapp.dto.TrainerResponseDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
 import org.example.trainingapp.service.TrainerService;
+import org.example.trainingapp.service.impl.TrainerHoursClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,6 +38,7 @@ import java.util.List;
 public class TrainerController {
 
     private final TrainerService trainerService;
+    private final TrainerHoursClient trainerHoursClient;
 
 
     @GetMapping("/{username}")
@@ -121,6 +123,36 @@ public class TrainerController {
             @RequestBody ActiveStatusDto activeStatusDto) {
         Boolean status = trainerService.setTrainerActiveStatus(activeStatusDto);
         return ResponseEntity.ok("Trainer active status changed to " + status);
+    }
+
+
+    @GetMapping("/{username}/hours/{year}/{month}")
+    @PreAuthorize("hasRole('TRAINER')")
+    @CheckOwnership
+    @Operation(
+            summary = "Get trainer's monthly hours",
+            description = "Returns total number of hours a trainer has conducted in a given month"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200", description = "Total hours for trainer",
+                    content = @Content(schema = @Schema(implementation = Double.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Validation error"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "404", description = "Trainer not found")
+    })
+    public ResponseEntity<Double> getTrainerHours(
+            @Parameter(description = "Trainer username", required = true)
+            @PathVariable String username,
+            @Parameter(description = "Year", required = true, example = "2024")
+            @PathVariable int year,
+            @Parameter(description = "Month (1-12)", required = true, example = "5")
+            @PathVariable int month
+    ) {
+        double hours = trainerHoursClient.getTrainerHours(username, year, month);
+        return ResponseEntity.ok(hours);
     }
 
 }

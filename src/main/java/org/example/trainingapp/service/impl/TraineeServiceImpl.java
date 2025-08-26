@@ -2,11 +2,13 @@ package org.example.trainingapp.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.converter.Converter;
+import org.example.trainingapp.dto.ActionType;
 import org.example.trainingapp.dto.ActiveStatusDto;
 import org.example.trainingapp.dto.TraineeRequestDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TrainerShortDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
+import org.example.trainingapp.dto.TrainingUpdateRequest;
 import org.example.trainingapp.dto.UpdateTrainerListDto;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import java.util.stream.Collectors;
@@ -42,6 +45,7 @@ public class TraineeServiceImpl implements TraineeService {
     private final AuthContextUtil authContextUtil;
     private final TraineeRepository traineeRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TrainerHoursClient trainerHoursClient;
 
 
     @Override
@@ -75,9 +79,22 @@ public class TraineeServiceImpl implements TraineeService {
         if (!username.equals(authContextUtil.getUsername())) {
             throw new ForbiddenAccessException("User is not the owner of entity");
         } else {
-            ValidationUtils.validateUsername(username);
-            traineeRepository.deleteByUsername(username);
-            log.info("Trainee deleted: {}", username);
+            Trainee trainee = traineeRepository.findByUsernameWithTrainings(username)
+                    .orElseThrow(() -> new NoSuchElementException("Trainee not found: " + username));
+            for (Training training : trainee.getTrainings()) {
+                try {
+                    TrainingUpdateRequest update = converter.trainingAndActionToUpdateRequest(training, ActionType.DELETE);
+                    trainerHoursClient.notifyTrainerHours(update);
+                } catch (Exception e) {
+                    log.warn("Failed to notify trainer hours for training {}: {}", training.getTrainingName(), e.getMessage());
+                }
+            }
+            for (Trainer trainer : new ArrayList<>(trainee.getTrainers())) {
+                trainer.getTrainees().remove(trainee);
+            }
+            trainee.getTrainers().clear();
+            traineeRepository.delete(trainee);
+            log.info("Trainee {} deleted with all trainings, trainers hours updated", username);
         }
     }
 

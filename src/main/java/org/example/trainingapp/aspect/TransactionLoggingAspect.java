@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.UUID;
 
@@ -19,18 +20,22 @@ public class TransactionLoggingAspect {
 
     @Around("execution(* org.example.trainingapp..*Service.*(..))")
     public Object aroundService(ProceedingJoinPoint pjp) throws Throwable {
-        String txId = UUID.randomUUID().toString();
-        MDC.put("txId", txId);
-        log.info("TX-START id={} {}", txId, pjp.getSignature());
+        String existing = MDC.get("txId");
+        boolean generatedHere = false;
+        if (!StringUtils.hasText(existing)) {
+            existing = UUID.randomUUID().toString();
+            MDC.put("txId", existing);
+            generatedHere = true;                       //  flag saying we generate txId on this step
+        }
         try {
             Object result = pjp.proceed();
-            log.info("TX-SUCCESS id={}", txId);
+            log.info("TX-SUCCESS id={}", existing);
             return result;
         } catch (Throwable ex) {
-            log.error("TX-ROLLBACK id={} err={}", txId, ex.getMessage(), ex);
+            log.error("TX-ROLLBACK id={} err={}", existing, ex.getMessage(), ex);
             throw ex;
         } finally {
-            MDC.clear();
+            if (generatedHere) MDC.clear();             // created here - clear here
         }
     }
 }

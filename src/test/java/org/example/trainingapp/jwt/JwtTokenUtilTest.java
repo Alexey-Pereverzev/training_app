@@ -42,8 +42,8 @@ class JwtTokenUtilTest {
                 .build();
         // when
         String token = jwtTokenUtil.generateToken(userDetails);
-        // then
         DecodedJWT jwt = jwtTokenUtil.validateAndParseToken(token);
+        // then
         assertEquals("Dina.Aliyeva", jwt.getSubject());
         assertEquals("ROLE_TRAINER", jwt.getClaim("role").asString());
     }
