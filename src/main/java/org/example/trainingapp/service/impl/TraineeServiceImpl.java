@@ -45,7 +45,7 @@ public class TraineeServiceImpl implements TraineeService {
     private final AuthContextUtil authContextUtil;
     private final TraineeRepository traineeRepository;
     private final PasswordEncoder passwordEncoder;
-    private final TrainerHoursClient trainerHoursClient;
+    private final TrainerHoursPublisher trainerHoursPublisher;
 
 
     @Override
@@ -84,7 +84,7 @@ public class TraineeServiceImpl implements TraineeService {
             for (Training training : trainee.getTrainings()) {
                 try {
                     TrainingUpdateRequest update = converter.trainingAndActionToUpdateRequest(training, ActionType.DELETE);
-                    trainerHoursClient.notifyTrainerHours(update);
+                    trainerHoursPublisher.publishUpdate(update);
                 } catch (Exception e) {
                     log.warn("Failed to notify trainer hours for training {}: {}", training.getTrainingName(), e.getMessage());
                 }

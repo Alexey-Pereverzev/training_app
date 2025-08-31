@@ -9,6 +9,12 @@ spring:
     port: 6379
   application:
     name: trainingapp
+  activemq:
+    broker-url: tcp://localhost:61616
+    user: admin
+    password: admin
+    packages:
+      trust-all: true   # allow DTO serialization
 
 server:
   servlet:
@@ -28,13 +34,6 @@ management:
 jwt:
   lifetime: 36000000
   keys-path: secret
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-  instance:
-    prefer-ip-address: true
 
 resilience4j:
   circuitbreaker:

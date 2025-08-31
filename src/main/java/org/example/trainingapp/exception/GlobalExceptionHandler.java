@@ -65,6 +65,12 @@ public class GlobalExceptionHandler {
                 .body("Request timed out: " + ex.getMessage());
     }
 
+    @ExceptionHandler(MessagingException.class)
+    public ResponseEntity<String> handleMessaging(MessagingException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body("JMS error: " + ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGeneric(Exception ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body("Unexpected server error: " + ex.getMessage());

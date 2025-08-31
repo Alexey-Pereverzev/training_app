@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TrainingInitializationService {
 
     private final TrainingRepository trainingRepository;
-    private final TrainerHoursClient trainerHoursClient;
+    private final TrainerHoursPublisher trainerHoursPublisher;
     private final Converter converter;
     private final Logger log = LoggerFactory.getLogger(TrainingInitializationService.class);
 
@@ -44,13 +44,8 @@ public class TrainingInitializationService {
         log.info("Initializing trainer-hours microservice...");
 
         try {
-            try {                                                           // cleaning up old records from mongo
-                trainerHoursClient.clearAllTrainerHours(txId);
-                log.info("Trainer-hours microservice cleared successfully. txId={}", txId);
-            } catch (Exception e) {
-                log.error("Failed to clear trainer-hours microservice before init: {}", e.getMessage(), e);
-                return;
-            }
+            trainerHoursPublisher.publishClearAll(txId);                        // cleaning up old records
+            log.info("Trainer-hours microservice cleared successfully. txId={}", txId);
 
             List<Training> allTrainings = trainingRepository.findAll();         // loading all trainings to mongo
             int total = allTrainings.size();
@@ -59,7 +54,7 @@ public class TrainingInitializationService {
             for (Training training : allTrainings) {
                 try {
                     TrainingUpdateRequest update = converter.trainingAndActionToUpdateRequest(training, ActionType.ADD);
-                    trainerHoursClient.notifyTrainerHours(update, txId);
+                    trainerHoursPublisher.publishUpdate(update, txId);
                     success.incrementAndGet();
                 } catch (Exception e) {
                     log.warn("Failed to initialize training '{}': {}", training.getTrainingName(), e.getMessage(), e);
@@ -68,6 +63,8 @@ public class TrainingInitializationService {
             long took = System.currentTimeMillis() - started;
             log.info("Trainer-hours microservice initialization complete: {}/{} trainings sent, took {} ms. txId={}",
                     success.get(), total, took, txId);
+        } catch (Exception e) {
+            log.error("Initialization failed: {}", e.getMessage(), e);
         } finally {
             MDC.remove("txId");
         }

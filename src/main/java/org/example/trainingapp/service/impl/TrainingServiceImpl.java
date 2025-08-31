@@ -35,7 +35,7 @@ public class TrainingServiceImpl implements TrainingService {
     private final TraineeRepository traineeRepository;
     private final Converter converter;
     private final TrainingExecutionMetrics trainingExecutionMetrics;
-    private final TrainerHoursClient trainerHoursClient;
+    private final TrainerHoursPublisher trainerHoursPublisher;
 
 
     @Override
@@ -78,7 +78,7 @@ public class TrainingServiceImpl implements TrainingService {
 
         // notification of 2nd microservice
         TrainingUpdateRequest update = converter.trainingAndActionToUpdateRequest(training, ActionType.ADD);
-        trainerHoursClient.notifyTrainerHours(update);
+        trainerHoursPublisher.publishUpdate(update);
 
         log.info("Training created: {}", training.getTrainingName());
         return "Training " + training.getTrainingName() + " with id " + training.getId() + " created successfully";
@@ -121,9 +121,8 @@ public class TrainingServiceImpl implements TrainingService {
         }
 
         trainingRepository.delete(training);
-        TrainingUpdateRequest updateRequest =
-                converter.trainingAndActionToUpdateRequest(training, ActionType.DELETE);
-        trainerHoursClient.notifyTrainerHours(updateRequest);
+        TrainingUpdateRequest updateRequest = converter.trainingAndActionToUpdateRequest(training, ActionType.DELETE);
+        trainerHoursPublisher.publishUpdate(updateRequest);
 
         log.info("Training deleted: {} by trainer {}", trainingName, training.getTrainer().getUsername());
     }

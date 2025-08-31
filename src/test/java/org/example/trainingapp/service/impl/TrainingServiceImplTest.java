@@ -50,7 +50,7 @@ class TrainingServiceImplTest {
     private TrainingExecutionMetrics trainingExecutionMetrics;
 
     @Mock
-    private TrainerHoursClient trainerHoursClient;
+    private TrainerHoursPublisher trainerHoursPublisher;
 
     @InjectMocks
     private TrainingServiceImpl trainingService;
@@ -152,7 +152,7 @@ class TrainingServiceImplTest {
         trainingService.deleteTrainingByName(name);
         // then
         verify(trainingRepository).delete(training);
-        verify(trainerHoursClient).notifyTrainerHours(any());
+        verify(trainerHoursPublisher).publishUpdate(any());
     }
 
 

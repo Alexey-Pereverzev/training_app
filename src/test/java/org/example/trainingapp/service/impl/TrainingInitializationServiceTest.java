@@ -37,7 +37,7 @@ class TrainingInitializationServiceTest {
     private TrainingRepository trainingRepository;
 
     @Mock
-    private TrainerHoursClient trainerHoursClient;
+    private TrainerHoursPublisher trainerHoursPublisher;
 
     @Mock
     private Converter converter;
@@ -70,10 +70,10 @@ class TrainingInitializationServiceTest {
         // when
         service.initializeTrainerHoursMicroservice();
         // then
-        verify(trainerHoursClient).clearAllTrainerHours(anyString());
+        verify(trainerHoursPublisher).publishClearAll(anyString());
         verify(trainingRepository).findAll();
         verify(converter).trainingAndActionToUpdateRequest(training, ActionType.ADD);
-        verify(trainerHoursClient).notifyTrainerHours(eq(update), anyString());
+        verify(trainerHoursPublisher).publishUpdate(eq(update), anyString());
         assertNull(MDC.get("txId"), "MDC txId should be cleared");
     }
 
@@ -81,8 +81,7 @@ class TrainingInitializationServiceTest {
     @Test
     void whenInitializeTrainerHoursMicroservice_clearFails_shouldStopInitialization() {
         // given
-        doThrow(new RuntimeException("down"))
-                .when(trainerHoursClient).clearAllTrainerHours(anyString());
+        doThrow(new RuntimeException("down")).when(trainerHoursPublisher).publishClearAll(anyString());
         // when
         service.initializeTrainerHoursMicroservice();
         // then
@@ -101,7 +100,7 @@ class TrainingInitializationServiceTest {
         service.initializeTrainerHoursMicroservice();
         // then
         verify(trainingRepository).findAll();
-        verify(trainerHoursClient, never()).notifyTrainerHours(any(TrainingUpdateRequest.class), anyString());
+        verify(trainerHoursPublisher, never()).publishUpdate(any(TrainingUpdateRequest.class), anyString());
         assertNull(MDC.get("txId"));
     }
 
@@ -113,12 +112,11 @@ class TrainingInitializationServiceTest {
         TrainingUpdateRequest update = TrainingUpdateRequest.builder().build();
         when(trainingRepository.findAll()).thenReturn(List.of(training));
         when(converter.trainingAndActionToUpdateRequest(training, ActionType.ADD)).thenReturn(update);
-        doThrow(new RuntimeException("down"))
-                .when(trainerHoursClient).notifyTrainerHours(eq(update), anyString());
+        doThrow(new RuntimeException("down")).when(trainerHoursPublisher).publishUpdate(eq(update), anyString());
         // when
         service.initializeTrainerHoursMicroservice();
         // then
-        verify(trainerHoursClient).notifyTrainerHours(eq(update), anyString());
+        verify(trainerHoursPublisher).publishUpdate(eq(update), anyString());
     }
 
 
