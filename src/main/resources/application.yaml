@@ -50,4 +50,3 @@ resilience4j:
       trainerHoursService:
         timeoutDuration: 3s
 
-

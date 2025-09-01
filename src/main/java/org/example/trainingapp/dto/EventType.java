@@ -5,3 +5,4 @@ public enum EventType {
     UPDATE,             // ADD/DELETE from actionType
     CLEAR_ALL
 }
+

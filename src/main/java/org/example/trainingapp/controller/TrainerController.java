@@ -15,7 +15,6 @@ import org.example.trainingapp.dto.TrainerRequestDto;
 import org.example.trainingapp.dto.TrainerResponseDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
 import org.example.trainingapp.service.TrainerService;
-import org.example.trainingapp.service.impl.TrainerHoursPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,7 +36,6 @@ import java.util.List;
 public class TrainerController {
 
     private final TrainerService trainerService;
-    private final TrainerHoursPublisher trainerHoursPublisher;
 
 
     @GetMapping("/{username}")
@@ -125,3 +123,4 @@ public class TrainerController {
     }
 
 }
+

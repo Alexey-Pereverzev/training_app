@@ -127,6 +127,5 @@ public class TrainingServiceImpl implements TrainingService {
         log.info("Training deleted: {} by trainer {}", trainingName, training.getTrainer().getUsername());
     }
 
-
 }
 

@@ -6,3 +6,4 @@ public class MessagingException extends RuntimeException {
         super(msg, cause);
     }
 }
+
