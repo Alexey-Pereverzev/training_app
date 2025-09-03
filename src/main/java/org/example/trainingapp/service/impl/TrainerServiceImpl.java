@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 
 @Service
@@ -47,18 +48,18 @@ public class TrainerServiceImpl implements TrainerService {
         Trainer existing = trainerRepository.findByUsernameWithTrainees(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer '{}' not found during updaing ", username);
-                    return new RuntimeException("Not found trainer with username: " + username);
+                    return new NoSuchElementException("Not found trainer with username: " + username);
                 });
         String specialization = trainerRequestDto.getSpecializationName();
         TrainingType type = trainingTypeRepository.findByName(specialization)
                 .orElseThrow(() -> {
                     log.warn("TrainingType not found: {}", specialization);
-                    return new RuntimeException("TrainingType not found: " + specialization);
+                    return new NoSuchElementException("TrainingType not found: " + specialization);
                 });
         //  checking type validity and catching the exception
         if (!ValidationUtils.isValidTrainingTypeEnum(specialization.toUpperCase())) {
             log.error("Unsupported TrainingType: {}", specialization);
-            throw new RuntimeException("TrainingType '" + specialization + "' is not supported.");
+            throw new NoSuchElementException("TrainingType '" + specialization + "' is not supported.");
         }
         existing.setSpecialization(type);
         existing.setActive(trainerRequestDto.getActive());
@@ -106,7 +107,7 @@ public class TrainerServiceImpl implements TrainerService {
             Trainer trainer = trainerRepository.findByUsernameWithTrainings(username)
                     .orElseThrow(() -> {
                         log.warn("Trainer '{}' not found during getting trainings", username);
-                        return new RuntimeException("Not found trainer with username: " + username);
+                        return new NoSuchElementException("Not found trainer with username: " + username);
                     });
             List<Training> trainings = trainer.getTrainings().stream()
                     .filter(training -> {
@@ -138,7 +139,7 @@ public class TrainerServiceImpl implements TrainerService {
         Trainer trainer = trainerRepository.findByUsernameWithTrainees(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer '{}' not found during getting trainees", username);
-                    return new RuntimeException("Not found trainer with username: " + username);
+                    return new NoSuchElementException("Not found trainer with username: " + username);
                 });
         List<Trainee> trainees = trainer.getTrainees();
         log.info("Retrieved available trainees for Trainer: {}", username);
@@ -149,7 +150,7 @@ public class TrainerServiceImpl implements TrainerService {
     private Trainer getTrainer(String username) {
         return trainerRepository.findByUsername(username).orElseThrow(() -> {
             log.warn("Trainer not found: {}", username);
-            return new RuntimeException("Trainer not found: " + username);
+            return new NoSuchElementException("Trainer not found: " + username);
         });
     }
 

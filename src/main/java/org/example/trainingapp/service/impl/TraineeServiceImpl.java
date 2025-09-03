@@ -45,7 +45,7 @@ public class TraineeServiceImpl implements TraineeService {
     private final AuthContextUtil authContextUtil;
     private final TraineeRepository traineeRepository;
     private final PasswordEncoder passwordEncoder;
-    private final TrainerHoursClient trainerHoursClient;
+    private final TrainerHoursPublisher trainerHoursPublisher;
 
 
     @Override
@@ -56,7 +56,7 @@ public class TraineeServiceImpl implements TraineeService {
         Trainee existing = traineeRepository.findByUsernameWithTrainers(username)
                 .orElseThrow(() -> {
                     log.warn("Trainee '{}' not found during updating ", username);
-                    return new RuntimeException("Not found trainee with username: " + username);
+                    return new NoSuchElementException("Not found trainee with username: " + username);
                 });
         String address = traineeRequestDto.getAddress();
         if (address!=null && !address.isBlank()) {
@@ -84,7 +84,7 @@ public class TraineeServiceImpl implements TraineeService {
             for (Training training : trainee.getTrainings()) {
                 try {
                     TrainingUpdateRequest update = converter.trainingAndActionToUpdateRequest(training, ActionType.DELETE);
-                    trainerHoursClient.notifyTrainerHours(update);
+                    trainerHoursPublisher.publishUpdate(update);
                 } catch (Exception e) {
                     log.warn("Failed to notify trainer hours for training {}: {}", training.getTrainingName(), e.getMessage());
                 }
@@ -120,13 +120,13 @@ public class TraineeServiceImpl implements TraineeService {
         Trainee trainee = traineeRepository.findByUsernameWithTrainers(username)
                 .orElseThrow(() -> {
                     log.warn("Trainee '{}' not found during updating trainers", username);
-                    return new RuntimeException("Not found trainee with username: " + username);
+                    return new NoSuchElementException("Not found trainee with username: " + username);
                 });
 
         if (trainee.getTrainers() != null) {            // delete trainee from old trainers
             for (Trainer oldTr : new ArrayList<>(trainee.getTrainers())) {
                 Trainer fullOld = trainerRepository.findByUsernameWithTrainees(oldTr.getUsername())
-                        .orElseThrow(() -> new RuntimeException(
+                        .orElseThrow(() -> new NoSuchElementException(
                                 "Trainer not found: " + oldTr.getUsername()));
                 fullOld.getTrainees().remove(trainee);
                 trainerRepository.save(fullOld);
@@ -135,7 +135,7 @@ public class TraineeServiceImpl implements TraineeService {
         }
 
         List<Trainer> updatedTrainers = updateTrainerListDto.getTrainerUsernames().stream()
-                .map(u -> trainerRepository.findByUsernameWithTrainees(u).orElseThrow(() -> new RuntimeException(
+                .map(u -> trainerRepository.findByUsernameWithTrainees(u).orElseThrow(() -> new NoSuchElementException(
                                 "Not found trainer with username: " + u)))
                 .peek(trainer -> {
                     if (!trainer.getTrainees().contains(trainee)) {         //  add trainee to new trainers
@@ -174,7 +174,7 @@ public class TraineeServiceImpl implements TraineeService {
             Trainee trainee = traineeRepository.findByUsernameWithTrainers(username)
                     .orElseThrow(() -> {
                         log.warn("Trainee '{}' not found during getting not assigned trainers", username);
-                        return new RuntimeException("Not found trainee with username: " + username);
+                        return new NoSuchElementException("Not found trainee with username: " + username);
                     });
             Set<Long> assignedTrainerIds = trainee.getTrainers().stream()
                     .map(User::getId)
@@ -198,7 +198,7 @@ public class TraineeServiceImpl implements TraineeService {
             Trainee trainee = traineeRepository.findByUsernameWithTrainings(username)
                     .orElseThrow(() -> {
                         log.warn("Trainee '{}' not found during getting trainings", username);
-                        return new RuntimeException("Not found trainee with username: " + username);
+                        return new NoSuchElementException("Not found trainee with username: " + username);
                     });
             List<Training> trainings = trainee.getTrainings().stream()
                     .filter(training -> {
@@ -231,7 +231,7 @@ public class TraineeServiceImpl implements TraineeService {
         Trainee trainee = traineeRepository.findByUsernameWithTrainers(username)
                 .orElseThrow(() -> {
                     log.warn("Trainee '{}' not found during getting trainers", username);
-                    return new RuntimeException("Not found trainee with username: " + username);
+                    return new NoSuchElementException("Not found trainee with username: " + username);
                 });
         List<Trainer> trainers = trainee.getTrainers();
         log.info("Retrieved all trainers for Trainee: {}", username);
@@ -242,7 +242,8 @@ public class TraineeServiceImpl implements TraineeService {
     private Trainee getTrainee(String username) {
         return traineeRepository.findByUsername(username).orElseThrow(() -> {
             log.warn("Trainee not found: {}", username);
-            return new RuntimeException("Trainee not found: " + username);
+            return new NoSuchElementException("Trainee not found: " + username);
         });
     }
 }
+

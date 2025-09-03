@@ -3,13 +3,16 @@ package org.example.trainingapp.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.aspect.CheckOwnership;
+import org.example.trainingapp.dto.SyncResult;
 import org.example.trainingapp.dto.TrainingRequestDto;
 import org.example.trainingapp.service.TrainingService;
+import org.example.trainingapp.service.impl.TrainingSyncService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TrainingController {
 
     private final TrainingService trainingService;
+    private final TrainingSyncService trainingSyncService;
 
 
     @PostMapping()
@@ -62,6 +66,23 @@ public class TrainingController {
             @PathVariable("trainingName") String trainingName) {
         trainingService.deleteTrainingByName(trainingName);
         return ResponseEntity.ok("Training " + trainingName + " deleted successfully");
+    }
+
+
+    @PostMapping("/sync-hours")
+    @PreAuthorize("hasRole('TRAINER')")
+    @Operation(summary = "Training hours sync",
+            description = "Clears data in the 2nd service and resends all training info")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successful sync",
+                    content = @Content(schema = @Schema(implementation = SyncResult.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
+            @ApiResponse(responseCode = "422", description = "Unprocessible request")
+    })
+    public ResponseEntity<SyncResult> syncTrainerHours() {
+        SyncResult result = trainingSyncService.syncTrainerHours();
+        return ResponseEntity.ok(result);
     }
 
 }

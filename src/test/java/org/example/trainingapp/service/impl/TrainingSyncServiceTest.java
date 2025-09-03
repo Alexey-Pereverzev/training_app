@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,24 +32,25 @@ import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)
-class TrainingInitializationServiceTest {
+class TrainingSyncServiceTest {
 
     @Mock
     private TrainingRepository trainingRepository;
 
     @Mock
-    private TrainerHoursClient trainerHoursClient;
+    private TrainerHoursPublisher trainerHoursPublisher;
 
     @Mock
     private Converter converter;
 
     @InjectMocks
-    private TrainingInitializationService service;
+    private TrainingSyncService service;
 
     private Training training;
 
     @BeforeEach
     void setUp() {
+        MDC.clear();
         training = Training.builder()
                 .trainingName("Power Yoga")
                 .trainingDate(LocalDate.of(2024, 5, 10))
@@ -61,64 +63,61 @@ class TrainingInitializationServiceTest {
 
 
     @Test
-    void whenInitializeTrainerHoursMicroservice_successful_shouldClearAndNotifyAll() {
+    void whenSyncTrainerHours_successful_shouldClearAndNotifyAll() {
         // given
         when(trainingRepository.findAll()).thenReturn(List.of(training));
         TrainingUpdateRequest update = TrainingUpdateRequest.builder().build();
         when(converter.trainingAndActionToUpdateRequest(training, ActionType.ADD))
                 .thenReturn(update);
         // when
-        service.initializeTrainerHoursMicroservice();
+        service.syncTrainerHours();
         // then
-        verify(trainerHoursClient).clearAllTrainerHours(anyString());
+        verify(trainerHoursPublisher).publishClearAll(anyString());
         verify(trainingRepository).findAll();
         verify(converter).trainingAndActionToUpdateRequest(training, ActionType.ADD);
-        verify(trainerHoursClient).notifyTrainerHours(eq(update), anyString());
+        verify(trainerHoursPublisher).publishUpdate(eq(update), anyString());
         assertNull(MDC.get("txId"), "MDC txId should be cleared");
     }
 
 
     @Test
-    void whenInitializeTrainerHoursMicroservice_clearFails_shouldStopInitialization() {
+    void whenSyncTrainerHours_clearFails_shouldStopInitialization() {
         // given
-        doThrow(new RuntimeException("down"))
-                .when(trainerHoursClient).clearAllTrainerHours(anyString());
-        // when
-        service.initializeTrainerHoursMicroservice();
-        // then
+        doThrow(new RuntimeException("down")).when(trainerHoursPublisher).publishClearAll(anyString());
+        // when + then
+        assertThrows(RuntimeException.class, () -> service.syncTrainerHours());
         verify(trainingRepository, never()).findAll();
         assertNull(MDC.get("txId"));
     }
 
 
     @Test
-    void whenInitializeTrainerHoursMicroservice_converterFails_shouldSkipThatTraining() {
+    void whenSyncTrainerHours_converterFails_shouldSkipThatTraining() {
         // given
         when(trainingRepository.findAll()).thenReturn(List.of(training));
         when(converter.trainingAndActionToUpdateRequest(any(), any()))
                 .thenThrow(new RuntimeException("bad data"));
         // when
-        service.initializeTrainerHoursMicroservice();
+        service.syncTrainerHours();
         // then
         verify(trainingRepository).findAll();
-        verify(trainerHoursClient, never()).notifyTrainerHours(any(TrainingUpdateRequest.class), anyString());
+        verify(trainerHoursPublisher, never()).publishUpdate(any(TrainingUpdateRequest.class), anyString());
         assertNull(MDC.get("txId"));
     }
 
 
     @Test
-    void whenInitializeTrainerHoursMicroservice_notifyFails_shouldSkipThatTraining() {
+    void whenSyncTrainerHours_notifyFails_shouldSkipThatTraining() {
         // given
         Training training = buildTraining();
         TrainingUpdateRequest update = TrainingUpdateRequest.builder().build();
         when(trainingRepository.findAll()).thenReturn(List.of(training));
         when(converter.trainingAndActionToUpdateRequest(training, ActionType.ADD)).thenReturn(update);
-        doThrow(new RuntimeException("down"))
-                .when(trainerHoursClient).notifyTrainerHours(eq(update), anyString());
+        doThrow(new RuntimeException("down")).when(trainerHoursPublisher).publishUpdate(eq(update), anyString());
         // when
-        service.initializeTrainerHoursMicroservice();
+        service.syncTrainerHours();
         // then
-        verify(trainerHoursClient).notifyTrainerHours(eq(update), anyString());
+        verify(trainerHoursPublisher).publishUpdate(eq(update), anyString());
     }
 
 
