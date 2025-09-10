@@ -1,11 +1,13 @@
 package org.example.trainingapp.service.impl;
 
 import org.example.trainingapp.converter.Converter;
+import org.example.trainingapp.dto.ActionType;
 import org.example.trainingapp.dto.ActiveStatusDto;
 import org.example.trainingapp.dto.TraineeRequestDto;
 import org.example.trainingapp.dto.TraineeResponseDto;
 import org.example.trainingapp.dto.TrainerShortDto;
 import org.example.trainingapp.dto.TrainingResponseDto;
+import org.example.trainingapp.dto.TrainingUpdateRequest;
 import org.example.trainingapp.dto.UpdateTrainerListDto;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
@@ -33,6 +35,7 @@ import java.util.Optional;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,6 +58,9 @@ class TraineeServiceImplTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private TrainerHoursPublisher trainerHoursPublisher;
 
     @InjectMocks
     private TraineeServiceImpl traineeService;
@@ -525,4 +531,43 @@ class TraineeServiceImplTest {
         assertThat(trainee.getPassword()).isEqualTo(encodedPassword);
         verify(traineeRepository).save(trainee);
     }
+
+
+    @Test
+    void whenDeleteTrainee_withTrainings_shouldPublishUpdateEvents() {
+        // given
+        String username = "Trainer.Test";
+        when(authContextUtil.getUsername()).thenReturn(username);
+
+        Training training1 = new Training();
+        training1.setTrainingName("Yoga");
+        Training training2 = new Training();
+        training2.setTrainingName("Boxing");
+
+        Trainee trainee = new Trainee();
+        trainee.setUsername(username);
+        trainee.setTrainings(new ArrayList<>(List.of(training1, training2)));
+        trainee.setTrainers(new ArrayList<>());
+
+        TrainingUpdateRequest update1 = new TrainingUpdateRequest();
+        update1.setTrainerUsername("Trainer1");
+        update1.setActionType(ActionType.DELETE);
+
+        TrainingUpdateRequest update2 = new TrainingUpdateRequest();
+        update2.setTrainerUsername("Trainer2");
+        update2.setActionType(ActionType.DELETE);
+
+        when(traineeRepository.findByUsernameWithTrainings(username)).thenReturn(Optional.of(trainee));
+        when(converter.trainingAndActionToUpdateRequest(training1, ActionType.DELETE)).thenReturn(update1);
+        when(converter.trainingAndActionToUpdateRequest(training2, ActionType.DELETE)).thenReturn(update2);
+
+        // when
+        traineeService.deleteTrainee(username);
+
+        // then
+        verify(trainerHoursPublisher, times(1)).publishUpdate(update1);
+        verify(trainerHoursPublisher, times(1)).publishUpdate(update2);
+        verify(traineeRepository).delete(trainee);
+    }
+
 }
