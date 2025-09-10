@@ -39,6 +39,7 @@ dependencies {
     implementation 'com.auth0:java-jwt:4.4.0'
     implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
     implementation 'org.springframework.boot:spring-boot-starter-activemq'
+    implementation 'jakarta.jms:jakarta.jms-api:3.1.0'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     runtimeOnly 'org.postgresql:postgresql'

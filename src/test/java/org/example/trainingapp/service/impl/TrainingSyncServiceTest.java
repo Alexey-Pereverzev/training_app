@@ -2,6 +2,7 @@ package org.example.trainingapp.service.impl;
 
 import org.example.trainingapp.converter.Converter;
 import org.example.trainingapp.dto.ActionType;
+import org.example.trainingapp.dto.SyncResult;
 import org.example.trainingapp.dto.TrainingUpdateRequest;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
@@ -20,6 +21,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -121,6 +123,25 @@ class TrainingSyncServiceTest {
     }
 
 
+    @Test
+    void whenSyncTrainerHours_mdcAlreadyContainsTxId_shouldReuseIt() {
+        // given
+        String existingTxId = "existing-tx-id-123";
+        MDC.put("txId", existingTxId);
+        Training training = buildTraining();
+        TrainingUpdateRequest update = TrainingUpdateRequest.builder().build();
+        when(trainingRepository.findAll()).thenReturn(List.of(training));
+        when(converter.trainingAndActionToUpdateRequest(training, ActionType.ADD)).thenReturn(update);
+        // when
+        SyncResult result = service.syncTrainerHours();
+        // then
+        verify(trainerHoursPublisher).publishClearAll(existingTxId);
+        verify(trainerHoursPublisher).publishUpdate(update, existingTxId);
+        assertThat(result.txId()).isEqualTo(existingTxId);                  // should use old txId
+        assertNull(MDC.get("txId"), "After method finished txId should be cleared from MDC");
+    }
+
+
     private Training buildTraining() {
         Trainer trainer = Trainer.builder().username("Elena.Sokolova").trainees(new ArrayList<>()).build();
         Trainee trainee = Trainee.builder().username("Nina.Rakhimova").trainers(new ArrayList<>()).build();
@@ -133,5 +154,8 @@ class TrainingSyncServiceTest {
                 .trainingType(new TrainingType("Yoga"))
                 .build();
     }
+
+
+
 }
 
