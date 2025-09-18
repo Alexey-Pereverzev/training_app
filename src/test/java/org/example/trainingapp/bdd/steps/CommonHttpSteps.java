@@ -3,16 +3,11 @@ package org.example.trainingapp.bdd.steps;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
-import org.example.trainingapp.bdd.MockMvcAuthHelper;
+import lombok.RequiredArgsConstructor;
 import org.example.trainingapp.bdd.TestContext;
 import org.example.trainingapp.dto.CredentialsDto;
-import org.example.trainingapp.repository.TraineeRepository;
-import org.example.trainingapp.repository.TrainerRepository;
-import org.example.trainingapp.repository.TrainingTypeRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -24,24 +19,12 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 
+@RequiredArgsConstructor
 public class CommonHttpSteps {
 
-    @Autowired
-    private TestContext context;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
-    private MockMvc mockMvc;
-    @Autowired
-    private TraineeRepository traineeRepository;
-    @Autowired
-    private TrainerRepository trainerRepository;
-    @Autowired
-    private TrainingTypeRepository trainingTypeRepository;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-    @Autowired
-    private MockMvcAuthHelper authHelper;
+    private final TestContext context;
+    private final ObjectMapper objectMapper;
+    private final MockMvc mockMvc;
 
 
     // Given the application test context and authentication are prepared
