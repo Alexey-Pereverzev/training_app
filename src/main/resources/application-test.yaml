@@ -1,18 +1,13 @@
 database:
-  url: jdbc:postgresql://localhost:5432/training_app_test
-  username: test_user
-  password: test_password
-  driver-class-name: org.postgresql.Driver
+  url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+  username: sa
+  password:
+  driver-class-name: org.h2.Driver
 
 logging:
   level:
-    org:
-      hibernate:
-        SQL: DEBUG
-        type:
-          descriptor:
-            sql:
-              BasicBinder: TRACE
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
 
 spring:
   datasource:
@@ -31,10 +26,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  activemq:
+    broker-url: vm://localhost?broker.persistent=false
 
   flyway:
     enabled: false  # no migrations for unit/integration tests
 
-server:
-  port: 0  # random unused port

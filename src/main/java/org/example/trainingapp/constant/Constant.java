@@ -1,16 +1,11 @@
 package org.example.trainingapp.constant;
 
-import lombok.Getter;
 
+public final class Constant {
 
-@Getter
-public enum Constant {
-    ROLE("role"),
-    BEARER("Bearer ");
+    private Constant() {}
 
-    private final String value;
-
-    Constant(String value) {
-        this.value = value;
-    }
+    public static final String ROLE = "role";
+    public static final String BEARER = "Bearer ";
+    public static final String DEFAULT_PW = "pw123";
 }
