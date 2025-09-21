@@ -10,6 +10,7 @@ import org.example.trainingapp.dto.TraineeRegisterDto;
 import org.example.trainingapp.dto.TrainerRegisterDto;
 import org.example.trainingapp.entity.Trainee;
 import org.example.trainingapp.entity.Trainer;
+import org.example.trainingapp.entity.User;
 import org.example.trainingapp.metrics.RegistrationMetrics;
 import org.example.trainingapp.repository.TraineeRepository;
 import org.example.trainingapp.repository.TrainerRepository;
@@ -26,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 
@@ -102,6 +104,12 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void changePassword(ChangePasswordDto changePasswordDto) {
         ValidationUtils.validateCredentials(changePasswordDto);
+        User user = userRepository.findByUsername(changePasswordDto.getUsername())
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + changePasswordDto.getUsername()));
+        if (!passwordEncoder.matches(changePasswordDto.getOldPassword(), user.getPassword())) {
+            log.error("Validation failed: Invalid old password");
+            throw new IllegalArgumentException("Invalid old password");
+        }
         Role role = authenticationService.getRole(changePasswordDto.getUsername(), changePasswordDto.getOldPassword());
         if (role==Role.TRAINER) {
             trainerService.setNewPassword(changePasswordDto.getUsername(), changePasswordDto.getNewPassword());

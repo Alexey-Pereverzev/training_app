@@ -65,7 +65,7 @@ public class JwtTokenUtil {
 
 
     public String getRole(String token) {
-        return validateAndParseToken(token).getClaim(ROLE.getValue()).asString();
+        return validateAndParseToken(token).getClaim(ROLE).asString();
     }
 
 
@@ -92,7 +92,7 @@ public class JwtTokenUtil {
         Date expiredDate = new Date(issuedDate.getTime() + jwtLifetime);    //  token expiry datetime
 
         return JWT.create()
-                .withClaim(ROLE.getValue(), role)                           //  user role
+                .withClaim(ROLE, role)                           //  user role
                 .withSubject(userDetails.getUsername())                     //  username
                 .withIssuedAt(issuedDate)                                   //  creation datetime
                 .withExpiresAt(expiredDate)                                 //  expiry datetime

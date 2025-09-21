@@ -49,6 +49,10 @@ public class JpaAuthenticationService implements AuthenticationService {
     @Override
     @Transactional
     public JwtResponse authorize(String username, String rawPassword) {
+        ValidationUtils.validateCredentials(
+                CredentialsDto.builder().username(username).password(rawPassword).build()
+        );
+
         User user = userRepository.findByUsername(username)     //  1. searching by username in DB
                 .orElseThrow(() -> {
                     log.warn("Authentication failed: Invalid username for user '{}'", username);
