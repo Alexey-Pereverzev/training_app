@@ -1,0 +1,111 @@
+name: training-stack
+
+services:
+  pg:
+    image: postgres:16-alpine
+    container_name: pg
+    environment:
+      POSTGRES_USER: training
+      POSTGRES_PASSWORD: training
+      POSTGRES_DB: trainingdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U training -d trainingdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  activemq:
+    image: rmohr/activemq:5.15.9
+    container_name: activemq
+    environment:
+      ACTIVEMQ_USER: admin
+      ACTIVEMQ_PASSWORD: admin
+    ports:
+      - "8161:8161"    # web panel (http://localhost:8161/admin, admin/admin)
+
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  trainingapp:
+    container_name: trainingapp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      pg:
+        condition: service_healthy
+      activemq:
+        condition: service_started
+      redis:
+        condition: service_started
+      training-hours-service:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      # Postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pg:5432/trainingdb
+      SPRING_DATASOURCE_USERNAME: training
+      SPRING_DATASOURCE_PASSWORD: training
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      # ActiveMQ
+      SPRING_ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+      SPRING_ACTIVEMQ_USER: admin
+      SPRING_ACTIVEMQ_PASSWORD: admin
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      # Jwt path
+      JWT_KEYS_PATH: /app/secret
+    volumes:
+      - ./secret:/app/secret:ro
+    ports:
+      - "8080:8080"
+
+  training-hours-service:
+    container_name: training-hours-service
+    build:
+      context: ../training-hours-service
+      dockerfile: Dockerfile
+    depends_on:
+      activemq:
+        condition: service_started
+      mongo:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: "8081"
+      # Mongo
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/traininghours
+      # ActiveMQ
+      SPRING_ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+      SPRING_ACTIVEMQ_USER: admin
+      SPRING_ACTIVEMQ_PASSWORD: admin
+      # Jwt path
+      JWT_KEYS_PATH: /app/secret
+    volumes:
+      - ../training-hours-service/secret:/app/secret:ro
+    ports:
+      - "8081:8081"
+
+volumes:
+  pgdata:
+  mongodata:
