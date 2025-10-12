@@ -138,7 +138,6 @@ docker compose logs -f trainingapp  # trainingapp
 docker compose logs -f activemq     # ActiveMq
 docker compose logs -f pg           # PostgreSQL
 docker compose logs -f redis        # Redis
-docker compose logs -f mongo        # Mongo
 ```
 
 ### 9. Stop services:
