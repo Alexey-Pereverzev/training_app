@@ -1,21 +1,23 @@
 # Training Management System
 
-This is a modular Java 21 application built using **Spring Boot**. It manages trainees, trainers, and training sessions using Spring dependency injection, annotations, and PostgreSQL database.
+This is a modular Java 21 / Spring Boot 3.5 application built using **Spring Boot**. It manages trainees, trainers, and training sessions using Spring dependency injection, annotations, PostgreSQL database, Redis, JWT, ActiveMQ, Flyway, Prometheus and Swagger.
 
 ## Features
 
 - Manage profiles for **Trainees** and **Trainers**
 - Manage **Training sessions** between them
+- JWT authentication + filters/logging aspects
 - Initialize data using **Flyway**
 - Generate unique usernames and random passwords
+- Redis for token blacklist
 - Modular architecture following **SOLID**, **KISS**, and **DRY** principles
 - **REST** controllers
 - **Spring Security** configured using JWT-tokens
 - **Swagger UI** plugged in
 - Structured logging at multiple levels (`INFO`, `WARNING`, `SEVERE`)
 - Unit tests with **JUnit 5** and **Mockito**
-- RestTemplate for microservice communication
-- Eureka for service discovery
+- ActiveMQ for microservice communication
+
 
 
 ---
@@ -37,8 +39,9 @@ This is a modular Java 21 application built using **Spring Boot**. It manages tr
 | Migration         | Flyway                    |
 | Key-value storage | Redis                     |
 | API documentation | Swagger                   |
-| Microservice API  | RestTemplate              |
-| Discovery service | Eureka                    |
+| Messaging         | ActiveMQ                  |
+| Integration tests | Cucumber                  |
+| Containerization  | Docker                    |
 
 ---
 
@@ -69,11 +72,15 @@ src/
 │       └── db.migration     # Migrational scripts for Flyway
 │           
 └── test/
-    └── java/org.example.trainingapp/
-        ├── filter/          # Unit tests for filter classes
-        ├── jwt/             # Unit tests for jwt util classes
-        ├── service/         # Unit tests for service classes
-        └── util/            # Unit tests for utility classes
+    ├── java/org.example.trainingapp/
+    │   ├── bdd/             # Cucumber files - steps and config
+    │   ├── config/          # Unit tests for JSON converter
+    │   ├── filter/          # Unit tests for filter classes
+    │   ├── jwt/             # Unit tests for jwt util classes
+    │   ├── service/         # Unit tests for service classes
+    │   └── util/            # Unit tests for utility classes
+    └── resources/
+        └── features/        # Cucumber features
 ```
 
 ---
@@ -94,45 +101,57 @@ public.key
 private.key
 ```
 
-### 3. Run eureka service 
-
-### 4. Run training-hours-service  
-
-### 5. Run Redis on port 6379
-
-### 6. Run the application (default profile is 'local')
-
-```bash
-./gradlew bootRun
-```
-
-### 7. Swagger UI is available at:
-
-```bash
-http://localhost:8080/trainingapp/swagger-ui/index.html
-```
-
-### 8. Health checks exposed at:
-
-```bash
-http://localhost:8080/trainingapp/actuator/health
-```
-
-### 9. Prometheus-compatible metrics are available at:
-
-```bash
-http://localhost:8080/trainingapp/actuator/prometheus
-```
-
----
-
-## Running Unit Tests
+### 3. Tests (JUnit + Cucumber):
 
 ```bash
 ./gradlew test
 ```
 
+### 4. Run services:
+
+```bash
+docker compose up -d --build
+```
+
+### 5. Swagger UI is available at:
+
+```bash
+http://localhost:8080/trainingapp/swagger-ui/index.html
+```
+
+### 6. Health checks exposed at:
+
+```bash
+http://localhost:8080/trainingapp/actuator/health
+```
+
+### 7. Prometheus-compatible metrics are available at:
+
+```bash
+http://localhost:8080/trainingapp/actuator/prometheus
+```
+
+### 8. Logs:
+
+```bash
+docker compose logs -f trainingapp  # trainingapp
+docker compose logs -f activemq     # ActiveMq
+docker compose logs -f pg           # PostgreSQL
+docker compose logs -f redis        # Redis
+```
+
+### 9. Stop services:
+
+```bash
+docker compose down
+```
+
+---
+
+## Unit tests:
+
 Test coverage includes:
+- FixedTypeJsonMessageConverter
 - AuthTokenFilter
 - RestLoggingFilter
 - TransactionIdFilter
@@ -150,6 +169,21 @@ Test coverage includes:
 - AuthContextUtil
 - CredentialsUtil
 - ValidationUtils
+
+You can find test classes under:
+```
+src/test/java/org.example.trainingapp/
+```
+
+## Integration tests:
+
+Test coverage includes:
+- Trainee controller
+- Trainer controller
+- Training controller
+- Training Type controller
+- User controller
+
 
 You can find test classes under:
 ```
@@ -180,7 +214,6 @@ ERROR: Critical error
 - For testing purposes 15 trainees and 4 trainers with hashed passwords added. Original passwords are their names in lower case, for example: username "Oksana.Mikhaylova", password: "oksana".
 - For calculating training hours separate training-hours-service used. It's getting requests using RestTemplate
 - After flyway migration Mongo db in 2nd microservice is overwritten with current training hours
-- Microservices discovery is implemented with Eureka
 
 ### Design Patterns Used
 The project incorporates several established design patterns:
@@ -197,44 +230,23 @@ The project incorporates several established design patterns:
 
 ---
 
-### Task implementation for module 7:
+### Task implementation for module 10:
 
-**Based on the codebase created during the previous module, implement follow functionality:**
+**Tasks:**
 
-1. Update Existing Main Microservice implementation to call Secondary Microservice every time that new training added 
-or deleted to the system.
+1. Create Dockerfile for Main microservice with disabled integrations. Create Docker images from the files. Run application.
 ```
-solution: class TrainerHoursClient managing RestTemplate calls
-```
-
-2. Implement discovery module according to guide Eureka Discovery Service.
-```
-solution: separate eureka-service, discovery configured in application.yaml
+solution: Dockerfile. Can run with docker run command.
 ```
 
-3. Use circuit breaker design pattern in your implementation.
+2. Setup network configuration for Docker. Run application with enabled integrations with DB/queue.
 ```
-solution: CurcuitBreaker logic in TrainerHoursClient
-```
-
-4. Two levels of logging should be implemented - transactions and each operation transaction level - which endpoint was
-called, which request came and the service response - 200 or error and response message + at this level, a transactionId
-is generated, by which you can track all operations for this transaction the same transactionId can later be passed
-to downstream services.
-```
-solution: classes TransactionLoggingAspect + RestLoggingFilter + TransactionIdFilter 
+solution: docker-compose.yml. Run: docker compose up -d --build
 ```
 
-
-**Notes:**
-1. For REST API implementation use second level of Richardson maturity model.
+3. Start a shell in the running Docker containers and check the application logs.
 ```
-solution: URIs are resource-oriented, HTTP methods have correct semantics, response statuses are correct..
-```
-
-2. Try to understand in which case training can be deleted.
-```
-solution: we сannot delete past trainings - added corresponding logic to the training deletion method 
+solution: docker compose logs -f trainingapp
 ```
 
 ---
@@ -242,6 +254,6 @@ solution: we сannot delete past trainings - added corresponding logic to the tr
 ## Author
 
 Aleksei Pereverzev  
-Developed as part of a Microservices learning module.
+Developed as part of a Docker learning module.
 
 
